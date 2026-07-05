@@ -114,6 +114,7 @@ class LinkTracker(commands.Cog):
                 platform VARCHAR(50),
                 emoji VARCHAR(64) DEFAULT NULL,
                 played TINYINT(1) DEFAULT 0,
+                position INT DEFAULT NULL,
                 tracked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_guild_channel (guild_id, channel_id)
             )

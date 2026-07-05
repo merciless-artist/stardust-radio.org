@@ -2,6 +2,16 @@
 # ‖   Stardust Radio Bot — CHANGELOG
 # ╚════ ♱ · 𓆩⁜ ✨ ⁜𓆪 · ♱  ════╝
 
+## 2026-07-05 — Codex review fixes
+- `link_tracker`: include `position INT DEFAULT NULL` in the `tracked_links`
+  CREATE so a fresh deployment always has the column the dashboard orders by
+  (avoids a startup-order race where the queue read could fail).
+- `radio_submit`: `/radiosubmit` now guards against DMs (returns early if no
+  server context) so the consent click can't hit the NOT-NULL guild_id insert.
+  Same guard added to the Utility Bot's copy.
+- Skipped the double-approve race suggestion by request (extremely unlikely in
+  practice).
+
 ## 2026-07-04 — Initial build (lean radio + LP bot)
 - New standalone bot, trimmed sibling of the Utility Bot, writing to the same
   local MariaDB so its listening parties feed the same dashboard.

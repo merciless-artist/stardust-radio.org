@@ -204,6 +204,9 @@ class RadioSubmit(commands.Cog):
     @commands.hybrid_command(name="radiosubmit",
                              description="Submit your Suno song to be played on Stardust Radio")
     async def radiosubmit(self, ctx: commands.Context, link: str):
+        if ctx.guild is None:
+            await ctx.send("Radio submissions can only be sent from a server, not DMs.")
+            return
         if not suno_fetch.is_suno_url(link):
             await ctx.send("That doesn't look like a Suno song link "
                            "(needs to be a suno.com/song/... or suno.com/s/... URL).")
