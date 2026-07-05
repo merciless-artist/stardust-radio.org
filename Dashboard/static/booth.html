@@ -1,0 +1,3718 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stardust Radio — Booth</title>
+
+    <!-- Cinzel + Cormorant Garamond — match the listener site's theatrical
+         brand. Body still falls back to a clean system sans for the dense
+         queue rows where high readability matters more than flourish. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* ♪ ──────────────── RESET & VARIABLES ──────────────── ♪ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            /* Backgrounds — pulled toward the listener site's deep black
+               with the faintest blue undertone for separation between panels. */
+            --bg-deep:     #000000;
+            --bg-main:     #08080c;
+            --bg-panel:    #0c0c12;
+            --bg-controls: #0f0f17;
+
+            /* Accent — gold instead of hot pink. Same #f0d48a the
+               listener page uses for the wordmark + accent highlights. */
+            --accent:      #f0d48a;
+            --accent-glow: rgba(240, 212, 138, 0.32);
+            --gold:        #f0d48a;
+            --gold-deep:   #645840;
+            --gold-soft:   rgba(240, 212, 138, 0.25);
+
+            /* Text — matches listener site's --c-grey-bright / soft / muted */
+            --text:        #dadada;
+            --text-dim:    #a6a6a6;
+            --text-muted:  #545454;
+
+            /* Subtle gold border instead of the cold blue-grey one */
+            --border:      rgba(240, 212, 138, 0.18);
+
+            --success:     #4ec97a;
+        }
+
+        body {
+            background: var(--bg-deep);
+            color: var(--text);
+            /* Cinzel for the brand feel; system sans as fallback for any
+               dense readable content like queue rows. */
+            font-family: 'Cinzel', 'Cormorant Garamond', 'Times New Roman',
+                         'Segoe UI', system-ui, -apple-system, sans-serif;
+            letter-spacing: 0.02em;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* ♪ ──────────────── MAIN AREA (left) ──────────────── ♪ */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        /* ♪ ──────────────── NOW PLAYING HEADER ──────────────── ♪ */
+        #now-playing {
+            /* Dark base with a faint warm gold undertone instead of the
+               cold purple original. The gold border below tops it. */
+            background: linear-gradient(135deg, #0c0c10, #1a1408);
+            padding: 14px 28px;
+            border-bottom: 2px solid var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-height: 56px;
+            box-shadow: 0 2px 18px rgba(240, 212, 138, 0.15);
+        }
+
+        #now-playing .label {
+            color: var(--accent);
+            font-weight: 800;
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            padding: 4px 10px;
+            border: 1px solid var(--accent);
+            border-radius: 3px;
+        }
+
+        #now-playing .label.waiting {
+            color: var(--text-dim);
+            border-color: var(--text-dim);
+        }
+
+        #np-info {
+            font-size: 18px;
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #np-info .username {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        #np-info .song-title {
+            color: var(--text);
+            font-weight: 400;
+            font-size: 16px;
+        }
+
+        #np-info .platform-tag {
+            color: #b0b0c0;
+            font-size: 12px;
+            margin-left: 10px;
+            background: rgba(255,255,255,0.08);
+            padding: 2px 10px;
+            border-radius: 3px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        #np-counter {
+            margin-left: auto;
+            color: var(--text-dim);
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        /* ♪ ──────────────── PLAYER AREA ──────────────── ♪ */
+        #player-area {
+            flex: 1;
+            background: var(--bg-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #player-container {
+            width: 94%;
+            height: 92%;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            background: #000;
+        }
+
+        #player-container iframe,
+        #player-container > div {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        #waiting-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+            gap: 16px;
+        }
+
+        #waiting-screen .icon {
+            font-size: 64px;
+            animation: pulse 2.5s ease-in-out infinite;
+        }
+
+        #waiting-screen .msg {
+            font-size: 20px;
+            letter-spacing: 1px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
+
+        .fallback-link {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            /* Dark text on gold (high contrast) — matches the listener
+               page's TUNE IN button. */
+            color: #1b1306;
+            font-size: 14px;
+            font-weight: 700;
+            text-decoration: none;
+            letter-spacing: 1px;
+            background: var(--accent);
+            padding: 8px 24px;
+            border-radius: 999px;
+            z-index: 10;
+            box-shadow: 0 0 16px var(--gold-soft);
+            transition: background 0.15s, transform 0.15s;
+        }
+
+        .fallback-link:hover {
+            background: #f6dea2;
+            text-decoration: none;
+            transform: translateX(-50%) translateY(-1px);
+        }
+
+        /* ♪ ──────────────── CONTROLS BAR ──────────────── ♪ */
+        #controls {
+            background: var(--bg-controls);
+            padding: 10px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .btn {
+            padding: 11px 30px;
+            border: 1.5px solid var(--text-dim);
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.15s;
+            background: var(--bg-panel);
+            /* Brighter than the old var(--text) so labels read clearly at
+               a glance during a live party. */
+            color: #f4f4f8;
+            font-family: inherit;
+        }
+
+        .btn:hover { transform: scale(1.04); border-color: var(--accent); }
+        .btn:active { transform: scale(0.97); }
+
+        .btn-next {
+            background: var(--accent);
+            /* Dark text reads cleanly on gold — same approach as TUNE IN. */
+            color: #1b1306;
+            border-color: var(--accent);
+            font-weight: 800;
+            padding: 13px 44px;
+            font-size: 18px;
+            letter-spacing: 1px;
+            box-shadow: 0 0 16px var(--gold-soft);
+        }
+
+        .btn-next:hover {
+            /* Slightly brighter gold on hover (keeps dark text readable). */
+            background: #f6dea2;
+            border-color: #f6dea2;
+            box-shadow: 0 0 24px var(--gold-soft);
+        }
+
+        .btn-pause {
+            background: rgba(46, 204, 113, 0.15);
+            color: var(--success);
+            border-color: var(--success);
+        }
+
+        .btn-pause.paused {
+            background: var(--bg-panel);
+            color: var(--text-dim);
+            border-color: var(--border);
+        }
+
+        .btn-mute {
+            background: rgba(144, 144, 200, 0.12);
+            color: #9090c8;
+            border-color: #9090c8;
+            font-size: 18px;
+            min-width: 52px;
+        }
+
+        .btn-mute.muted {
+            background: rgba(240, 212, 138, 0.15);
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        #timer-display {
+            color: var(--text);
+            font-size: 16px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        /* ♪ ──────────────── BRAND HEADER ──────────────── ♪ */
+        .brand-header {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(240,212,138,0.06), transparent);
+        }
+
+        .brand-logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            object-fit: cover;
+            transition: opacity 0.15s;
+        }
+
+        .brand-logo:hover { opacity: 0.6; }
+
+        .brand-name {
+            font-weight: 800;
+            font-size: 15px;
+            letter-spacing: 3px;
+            color: var(--text);
+        }
+
+        /* ♪ ──────── ADD TRACK INPUT ──────── ♪ */
+        .add-track-row {
+            display: flex;
+            gap: 6px;
+            padding: 8px 16px 10px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .add-track-row input {
+            flex: 1;
+            min-width: 0;
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            padding: 6px 10px;
+            font-size: 12px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .add-track-row input:focus {
+            border-color: var(--accent);
+        }
+        .add-track-row input::placeholder {
+            color: var(--text-muted);
+        }
+        .add-track-btn {
+            background: var(--accent);
+            color: white;
+            border: 0;
+            border-radius: 4px;
+            padding: 0 14px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: opacity 0.15s, transform 0.1s;
+            font-family: inherit;
+            line-height: 1;
+        }
+        .add-track-btn:hover  { opacity: 0.88; }
+        .add-track-btn:active { transform: scale(0.94); }
+
+        @keyframes addTrackShake {
+            0%, 100% { transform: translateX(0); }
+            25%      { transform: translateX(-4px); }
+            75%      { transform: translateX(4px); }
+        }
+        .add-track-row.error input {
+            animation: addTrackShake 0.18s ease-in-out 2;
+            border-color: #e94560;
+        }
+
+        /* ♪ ──────── MODE TOGGLE (DJ / Host) ──────── ♪ */
+        .mode-toggle {
+            margin-left: auto;
+            padding: 5px 12px;
+            border: 1px solid var(--accent);
+            border-radius: 999px;
+            background: rgba(240, 212, 138, 0.10);
+            color: var(--accent);
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 10px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+        .mode-toggle:hover {
+            background: rgba(240, 212, 138, 0.18);
+            transform: scale(1.04);
+        }
+        .mode-toggle.host {
+            border-color: var(--text-dim);
+            background: rgba(96, 96, 120, 0.15);
+            color: var(--text-dim);
+        }
+        .mode-toggle.host:hover {
+            background: rgba(96, 96, 120, 0.25);
+        }
+
+        /* ♪ ──────── HOST CO-PILOT BADGE ──────── ♪ */
+        /* Hidden in DJ mode; revealed when <body> has booth-host-mode. */
+        #host-badge {
+            display: none;
+            position: absolute;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            padding: 6px 16px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: rgba(8, 8, 15, 0.78);
+            backdrop-filter: blur(4px);
+            color: var(--text-dim);
+            font-size: 11px;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        body.booth-host-mode #host-badge { display: block; }
+
+        /* ♪ ──────────────── QUEUE SIDEBAR ──────────────── ♪ */
+        #queue-sidebar {
+            width: 300px;
+            background: var(--bg-panel);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .queue-header {
+            padding: 14px 20px;
+            font-weight: 800;
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .q-clear-btn {
+            font-weight: 700;
+            font-size: 12px;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            cursor: pointer;
+            padding: 3px 9px;
+            border-radius: 3px;
+            transition: color 0.15s, background 0.15s;
+        }
+
+        .q-clear-btn:hover {
+            color: var(--accent);
+            background: rgba(240, 212, 138, 0.15);
+        }
+
+        .queue-count {
+            font-weight: 400;
+            font-size: 12px;
+            letter-spacing: 0;
+            color: var(--text-muted);
+        }
+
+        #queue-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 6px 0;
+        }
+
+        #queue-list::-webkit-scrollbar { width: 4px; }
+        #queue-list::-webkit-scrollbar-track { background: transparent; }
+        #queue-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        .q-item {
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: background 0.2s;
+            user-select: none;
+        }
+
+        .q-item:hover { background: rgba(255,255,255,0.05); }
+
+        .q-item.drag-over {
+            border-top: 2px solid var(--accent);
+        }
+
+        .q-item.played {
+            opacity: 0.85;
+            color: #f5c842;
+        }
+        .q-item.played .q-user,
+        .q-item.played .q-num {
+            color: #f5c842;
+        }
+
+        .q-item.current {
+            background: rgba(240, 212, 138, 0.1);
+            border-left-color: var(--accent);
+            opacity: 1;
+        }
+
+        /* Newly-dropped links no longer flash — they just appear. */
+        .q-item.fresh {
+            animation: none;
+        }
+
+        .q-num {
+            color: var(--text-muted);
+            min-width: 22px;
+            font-size: 12px;
+            text-align: right;
+        }
+
+        .q-user {
+            color: var(--accent);
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 140px;
+        }
+
+        .q-plat {
+            margin-left: auto;
+            color: #9090a8;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            background: rgba(255,255,255,0.06);
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .q-status {
+            font-size: 11px;
+            min-width: 14px;
+        }
+
+        .q-edit {
+            color: var(--text-muted);
+            font-size: 12px;
+            cursor: pointer;
+            padding: 0 2px;
+            border-radius: 3px;
+            line-height: 1;
+            transition: color 0.15s;
+            flex-shrink: 0;
+            opacity: 0;
+        }
+
+        .q-item:hover .q-edit { opacity: 1; }
+
+        .q-edit:hover {
+            color: var(--gold);
+        }
+
+        .q-delete {
+            color: var(--text-muted);
+            font-size: 14px;
+            cursor: pointer;
+            padding: 0 4px;
+            border-radius: 3px;
+            line-height: 1;
+            transition: color 0.15s, background 0.15s;
+            flex-shrink: 0;
+        }
+
+        .q-delete:hover {
+            color: var(--accent);
+            background: rgba(240, 212, 138, 0.15);
+        }
+
+        .q-empty {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* ♪ ──────────────── START OVERLAY ──────────────── ♪ */
+        #start-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(8, 8, 15, 0.92);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        #start-overlay.visible { display: flex; }
+
+        #start-overlay:hover .start-ring {
+            border-color: var(--accent);
+            box-shadow: 0 0 40px var(--accent-glow);
+        }
+
+        .start-ring {
+            width: 120px;
+            height: 120px;
+            border: 3px solid var(--text-dim);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .start-ring .play-icon {
+            font-size: 48px;
+            color: var(--accent);
+            margin-left: 8px;
+        }
+
+        .start-hint {
+            margin-top: 20px;
+            color: var(--text-dim);
+            font-size: 15px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* ♪ ──────────────── AWAY-MODE SCREENSAVER ──────────────── ♪ */
+        /* Sits as an overlay over the player area when the host posts an  */
+        /* away note. Audio keeps playing underneath; only the visuals     */
+        /* swap. Drop a file at /static/assets/screensaver.mp4 to set the  */
+        /* visual — anything missing → screensaver just doesn't appear.    */
+        .screensaver {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 35;            /* above player (z<10), below note banner (z:40) */
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.6s ease, visibility 0s linear 0.6s;
+            background: #000;
+        }
+        .screensaver.visible {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.8s ease, visibility 0s linear 0s;
+        }
+
+        /* Screensaver picker arrows — only visible when away mode is on.
+           Subtle by default, light up on hover. Sit at the left + right
+           edges of the player area. Pointer-events flip on too so they're
+           clickable above the (otherwise pointer-events: none) screensaver. */
+        .screensaver-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 38;       /* above the screensaver (35), below the note banner (40) */
+            width: 48px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(240, 212, 138, 0.25);
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            font-size: 22px;
+            font-family: inherit;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s ease, visibility 0s linear 0.4s,
+                        background 0.2s ease, color 0.2s ease,
+                        border-color 0.2s ease;
+        }
+        .screensaver-nav--prev { left: 16px; }
+        .screensaver-nav--next { right: 16px; }
+        .screensaver-nav:hover {
+            background: rgba(0, 0, 0, 0.6);
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+        /* Show arrows only while the screensaver is visible. JS toggles a
+           class on the player-area when the screensaver activates. */
+        #player-area.away-mode .screensaver-nav {
+            opacity: 0.75;
+            visibility: visible;
+            transition: opacity 0.4s ease, visibility 0s linear 0s,
+                        background 0.2s ease, color 0.2s ease,
+                        border-color 0.2s ease;
+        }
+
+        /* ♪ ──────────────── NOTE BANNER ──────────────── ♪ */
+        #note-banner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 40;
+            background: rgba(8, 8, 15, 0.88);
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            padding: 32px 48px;
+            text-align: center;
+            max-width: 70%;
+            box-shadow: 0 0 60px var(--accent-glow);
+            display: none;
+            animation: noteFadeIn 0.4s ease-out;
+        }
+
+        #note-banner.visible { display: block; }
+
+        #note-banner .note-text {
+            color: #fff;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            line-height: 1.4;
+        }
+
+        @keyframes noteFadeIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* ♪ ──────────────── NOTE INPUT BAR ──────────────── ♪ */
+        #note-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 28px;
+            background: var(--bg-deep);
+            border-top: 1px solid var(--border);
+        }
+
+        #note-input {
+            flex: 1;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            padding: 6px 12px;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        #note-input:focus { border-color: var(--accent); }
+
+        #note-input::placeholder { color: var(--text-muted); }
+
+        .btn-note {
+            padding: 8px 18px;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        /* AWAY button — distinct from POST so the host can find it. Shows */
+        /* a gold-tinted state when away mode is currently active.        */
+        .btn-away {
+            border-color: var(--gold-soft);
+            color: var(--text-dim);
+        }
+        .btn-away:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .btn-away.is-active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #1b1306;
+        }
+
+        /* ♪ ──────── Now-playing header toggle buttons (lyrics, etc.) ──────── ♪ */
+        .np-toggle-btn {
+            margin-left: 8px;
+            padding: 6px 14px 6px 12px;
+            background: transparent;
+            border: 1.5px solid var(--gold-soft);
+            border-radius: 999px;
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            font-family: inherit;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.18s ease;
+            flex-shrink: 0;
+        }
+        .np-toggle-btn:hover {
+            background: var(--gold-soft);
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+        .np-toggle-btn__icon {
+            font-size: 13px;
+            line-height: 1;
+            color: var(--accent);
+        }
+        /* When lyrics are hidden, the button shows a strike-through state */
+        body.lyrics-hidden .np-toggle-btn {
+            color: var(--text-muted);
+        }
+        body.lyrics-hidden .np-toggle-btn .np-toggle-btn__icon {
+            color: var(--text-muted);
+            text-decoration: line-through;
+        }
+
+        /* When lyrics are hidden, collapse the Suno split-layout so the
+           album art expands to fill the full width of the player area. */
+        body.lyrics-hidden .suno-player__lyrics-col { display: none !important; }
+        /* ── Lyrics auto-scroll speed slider (teleprompter) ── */
+        .lyrics-speed { display:inline-flex; align-items:center; gap:6px;
+          vertical-align:middle; margin-left:8px; }
+        .lyrics-speed__icon { font-size:13px; opacity:.55; }
+        #lyrics-speed { width:92px; cursor:pointer; }
+        .lyrics-speed__val { font-size:11px; opacity:.55; min-width:34px;
+          text-align:right; font-variant-numeric:tabular-nums; }
+        .lyrics-speed__btn { width:20px; height:20px; padding:0; line-height:1;
+          display:inline-flex; align-items:center; justify-content:center;
+          border:1px solid rgba(255,255,255,.18); border-radius:5px;
+          background:rgba(255,255,255,.06); color:inherit; cursor:pointer;
+          font-size:14px; font-weight:600; }
+        .lyrics-speed__btn:hover { background:rgba(255,255,255,.16); }
+        .lyrics-speed__btn:active { transform:scale(0.92); }
+        body.lyrics-hidden .lyrics-speed { opacity:.35; }
+        body.lyrics-hidden .suno-player__top {
+            grid-template-columns: 1fr !important;
+        }
+        body.lyrics-hidden .suno-player__art-col {
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        /* ♪ ──────────────── HELP / QUICK REFERENCE ──────────────── ♪ */
+        /* Pill with the word "HELP" spelled out — clearer than a lone "?"
+           glyph, especially at a glance during a live party. */
+        .help-btn {
+            margin-left: 10px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: transparent;
+            border: 1.5px solid var(--gold-soft);
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            font-family: inherit;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.18s ease;
+            flex-shrink: 0;
+        }
+        .help-btn:hover {
+            background: var(--gold-soft);
+            border-color: var(--accent);
+            transform: scale(1.08);
+        }
+
+        .help-panel {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.72);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            animation: helpFadeIn 0.25s ease-out;
+        }
+        .help-panel[hidden] { display: none; }
+        @keyframes helpFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .help-panel__inner {
+            position: relative;
+            max-width: 720px;
+            width: 100%;
+            max-height: 84vh;
+            overflow-y: auto;
+            background: linear-gradient(165deg, #0c0c12, #1a1408);
+            border: 2px solid var(--accent);
+            border-radius: 14px;
+            padding: 28px 36px 32px;
+            box-shadow: 0 0 36px var(--accent-glow),
+                        0 12px 32px rgba(0,0,0,0.7);
+            color: var(--text);
+            font-family: inherit;
+        }
+        .help-panel__close {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            width: 32px;
+            height: 32px;
+            background: transparent;
+            border: 0;
+            color: var(--text-dim);
+            font-size: 28px;
+            line-height: 1;
+            cursor: pointer;
+            font-family: inherit;
+            transition: color 0.18s ease;
+        }
+        .help-panel__close:hover { color: var(--accent); }
+        .help-panel__heading {
+            margin: 0 0 8px;
+            font-family: 'Cinzel', serif;
+            font-size: 22px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--accent);
+            text-shadow: 0 0 14px var(--gold-soft);
+        }
+        .help-panel__section {
+            margin: 22px 0 8px;
+            font-family: 'Cinzel', serif;
+            font-size: 12px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--gold);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 4px;
+        }
+        .help-panel__list {
+            margin: 0;
+            padding-left: 22px;
+            list-style: none;
+        }
+        .help-panel__list li {
+            position: relative;
+            margin: 6px 0;
+            line-height: 1.5;
+            font-size: 14px;
+            color: var(--text);
+        }
+        .help-panel__list li::before {
+            content: "・";
+            position: absolute;
+            left: -18px;
+            color: var(--gold);
+        }
+        .help-panel__list code,
+        .help-panel__note code {
+            background: rgba(240, 212, 138, 0.12);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1px 8px;
+            font-family: ui-monospace, "SF Mono", Menlo, monospace;
+            font-size: 12.5px;
+            color: var(--accent);
+        }
+        .help-panel__list strong {
+            color: var(--accent);
+            font-weight: 700;
+        }
+        .help-panel__note {
+            margin-top: 6px;
+            font-size: 13px;
+            color: var(--text-dim);
+            font-style: italic;
+        }
+
+        /* ♪ ──────── SUNO VIDEO STAGE (video pinned to bottom) ──────── ♪ */
+        /* When a Suno track has a music video, the video sits as a smaller  */
+        /* widget at the lower half of the player area. Audio controls bar   */
+        /* anchored to the very bottom so it's ALWAYS visible regardless     */
+        /* of video aspect ratio.                                            */
+        .suno-video-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+        .suno-video-stage__video {
+            position: absolute;
+            bottom: 88px;            /* leaves room for the audio bar below */
+            left: 50%;
+            transform: translateX(-50%);
+            max-height: 60%;
+            max-width: 72%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 10px;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6),
+                        0 0 22px var(--gold-soft);
+        }
+        .suno-video-stage__audio {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 640px;
+            display: block;
+            z-index: 5;              /* above the video shadow if they touch */
+        }
+        .suno-video-stage__open {
+            position: absolute;
+            top: 16px;
+            right: 24px;
+            color: rgba(255, 255, 255, 0.45);
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-decoration: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(240, 212, 138, 0.15);
+        }
+        .suno-video-stage__open:hover {
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        /* ♪ ──────── SUNO PLAYER WITH LYRICS (split layout) ──────── ♪ */
+        /* Used when /api/suno-resolve returns lyrics — splits the player    */
+        /* into a small album art on the left + scrolling lyrics on the      */
+        /* right + full-width audio controls below. When no lyrics, falls    */
+        /* back to the original centered fullwidth layout (see JS).          */
+
+        .suno-player {
+            position: relative;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0c0c10, #1a1408);
+            display: flex;
+            flex-direction: column;
+        }
+        .suno-player__bg-image {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.4;
+            filter: blur(24px) brightness(0.6);
+            pointer-events: none;
+        }
+        .suno-player__overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(6px);
+            pointer-events: none;
+        }
+        .suno-player__inner {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            display: grid;
+            grid-template-rows: 1fr auto;
+            padding: 28px 36px 16px;
+            gap: 18px;
+            min-height: 0;
+        }
+        .suno-player__top {
+            display: grid;
+            grid-template-columns: minmax(220px, 300px) 1fr;
+            gap: 40px;
+            align-items: center;
+            min-height: 0;
+        }
+        .suno-player__art-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+        .suno-player__art {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 12px;
+            object-fit: cover;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65);
+        }
+        .suno-player__brand {
+            color: var(--accent);
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 6px;
+            text-shadow: 0 0 14px var(--gold-soft);
+        }
+        .suno-player__lyrics-col {
+            height: 100%;
+            min-height: 0;
+            overflow-y: auto;
+            position: relative;
+            padding: 1rem 0.5rem;
+            /* Soft fade top + bottom so lines feel like they glide in/out
+               as the host scrolls. */
+            mask-image: linear-gradient(
+                to bottom, transparent 0%, #000 8%, #000 92%, transparent 100%
+            );
+            -webkit-mask-image: linear-gradient(
+                to bottom, transparent 0%, #000 8%, #000 92%, transparent 100%
+            );
+            /* Slim gold scrollbar */
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent) transparent;
+        }
+        .suno-player__lyrics-col::-webkit-scrollbar { width: 5px; }
+        .suno-player__lyrics-col::-webkit-scrollbar-track { background: transparent; }
+        .suno-player__lyrics-col::-webkit-scrollbar-thumb {
+            background: var(--gold-soft);
+            border-radius: 3px;
+        }
+        .suno-player__lyrics {
+            text-align: center;
+            /* Cormorant Garamond reads way softer than Cinzel for body
+               text — it has real lowercase letters instead of small caps,
+               so paragraphs of lyrics don't feel like a stone tablet. */
+            font-family: 'Cormorant Garamond', 'EB Garamond',
+                         'Times New Roman', serif;
+        }
+        .suno-player__lyric-line {
+            display: block;
+            padding: 0.35em 0.6em;
+            /* HUGE — booth is screen-shared in Discord VC where the video
+               gets compressed and many people watch a tiny window. Text
+               needs to be readable through that compression. */
+            font-size: clamp(40px, 3.2vw, 60px);
+            line-height: 1.45;
+            color: #ffffff;
+            opacity: 0.92;
+            font-weight: 500;
+            letter-spacing: 0.005em;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+        }
+        .suno-player__audio {
+            width: 100%;
+            max-width: none;
+        }
+        .suno-player__open-link {
+            position: absolute;
+            bottom: 14px;
+            right: 24px;
+            color: rgba(255, 255, 255, 0.45);
+            font-size: 11px;
+            text-decoration: none;
+            z-index: 2;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .suno-player__open-link:hover { color: var(--accent); }
+
+        /* ♡ ──── CONTEXT HEADER — where/which-mode banner ──── ♡ */
+        .booth-context{display:flex;align-items:center;gap:10px;padding:7px 14px;
+          border-radius:10px;background:rgba(255,255,255,.04);
+          border:1px solid rgba(255,255,255,.10);margin:0 0 10px;}
+        .booth-context__icon{width:26px;height:26px;border-radius:50%;flex-shrink:0;
+          display:flex;align-items:center;justify-content:center;font-size:13px;
+          font-weight:600;background:rgba(255,255,255,.10);background-size:cover;
+          background-position:center;}
+        .booth-context__main{flex:1;min-width:0;display:flex;align-items:baseline;
+          gap:7px;overflow:hidden;white-space:nowrap;}
+        .booth-context__name{font-size:15px;font-weight:600;overflow:hidden;
+          text-overflow:ellipsis;}
+        .booth-context__meta{font-size:13px;opacity:.6;flex-shrink:0;}
+        .booth-context__mode{display:flex;align-items:center;gap:8px;flex-shrink:0;
+          font-size:12px;}
+        .booth-context__badge{font-weight:600;padding:3px 10px;border-radius:6px;
+          white-space:nowrap;}
+        .booth-context__badge.bot{background:#1d3a5f;color:#bfe0ff;}
+        .booth-context__badge.solo{background:#352f5e;color:#d6cffb;}
+        .booth-context__status{opacity:.7;}
+        /* ── No-Server tools bar (solo mode only) ── */
+        .solo-tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+          padding:10px 14px;margin:0 0 14px;border-radius:12px;
+          background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);}
+        .solo-toggle{display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer;}
+        .solo-tools__hint{font-size:12px;opacity:.6;}
+        .solo-tools__btn{padding:6px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.18);
+          background:#352f5e;color:#d6cffb;font-weight:600;cursor:pointer;}
+        .watcher-token-box{display:flex;align-items:center;gap:8px;width:100%;}
+        .watcher-token-box input{flex:1;min-width:200px;padding:6px 10px;border-radius:8px;
+          border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:#fff;font-family:monospace;}
+        .watcher-token-hint{font-size:12px;opacity:.7;}
+    </style>
+</head>
+<body>
+
+    <!-- ♪ ──────── MAIN CONTENT ──────── ♪ -->
+    <main>
+        <!-- ♪ ──── CONTEXT HEADER (where am I / which mode) ──── ♪ -->
+        <div id="booth-context" class="booth-context">
+          <div class="booth-context__icon" id="ctx-icon">·</div>
+          <div class="booth-context__main">
+            <span class="booth-context__name" id="ctx-name">Loading…</span>
+            <span class="booth-context__meta" id="ctx-meta"></span>
+          </div>
+          <div class="booth-context__mode">
+            <span class="booth-context__badge" id="ctx-badge">…</span>
+            <span class="booth-context__status" id="ctx-status"></span>
+          </div>
+        </div>
+
+        <!-- ♪ ──── NO-SERVER TOOLS (solo mode only) ──── ♪ -->
+        <div id="solo-tools" class="solo-tools" style="display:none;">
+          <label class="solo-toggle">
+            <input type="checkbox" id="watcher-toggle" onchange="setWatcherEnabled(this.checked)">
+            <span>Auto-add from Discord</span>
+          </label>
+          <span class="solo-tools__hint">needs the watcher app running on your PC</span>
+          <button type="button" class="solo-tools__btn" onclick="connectWatcher()">Connect watcher</button>
+          <div id="watcher-token-box" class="watcher-token-box" style="display:none;">
+            <input type="text" id="watcher-token-field" readonly onclick="this.select()">
+            <span class="watcher-token-hint">Paste this into your watcher once. <a href="#" onclick="regenWatcherToken();return false;">regenerate</a></span>
+          </div>
+        </div>
+
+        <div id="now-playing">
+            <span class="label waiting" id="np-label">WAITING</span>
+            <span id="np-info">Drop links in Discord to begin</span>
+            <span id="np-counter"></span>
+            <button type="button" id="lyrics-toggle-btn" class="np-toggle-btn"
+                    onclick="toggleLyricsVisibility()"
+                    title="Show / hide the lyrics panel"
+                    aria-label="Toggle lyrics panel">
+                <span class="np-toggle-btn__icon" aria-hidden="true">♪</span>
+                <span class="np-toggle-btn__label" id="lyrics-toggle-label">LYRICS</span>
+            </button>
+            <span class="lyrics-speed" title="Lyrics scroll speed — drag left to stop">
+                <button type="button" class="lyrics-speed__btn" onclick="bumpLyricsSpeed(-1)"
+                        aria-label="Slower" title="Slower">&minus;</button>
+                <input type="range" id="lyrics-speed" min="0" max="3000" step="20" value="1000"
+                       oninput="setLyricsSpeed(this.value)" aria-label="Lyrics scroll speed">
+                <span class="lyrics-speed__val" id="lyrics-speed-val">1000</span>
+                <button type="button" class="lyrics-speed__btn" onclick="bumpLyricsSpeed(1)"
+                        aria-label="Faster" title="Faster">+</button>
+            </span>
+            <button type="button" id="help-btn" class="help-btn"
+                    onclick="toggleHelpPanel()" title="Quick reference (LP commands)"
+                    aria-label="Quick reference">HELP</button>
+            <button type="button" id="invite-btn" class="np-toggle-btn"
+                    onclick="copyInvite()"
+                    title="Copy the drop-links server invite to share with listeners"
+                    aria-label="Copy drop-links invite">
+                <span class="np-toggle-btn__label" id="invite-btn-label">COPY DROP-LINK INVITE</span>
+            </button>
+        </div>
+
+        <!-- ♪ ──── HELP / QUICK REFERENCE CARD ──── ♪ -->
+        <!-- Click the ? button in the now-playing bar to open this card. -->
+        <!-- Edit the text below to customize what reminders show up.    -->
+        <div id="help-panel" class="help-panel" role="dialog" aria-labelledby="help-panel-heading" hidden>
+            <div class="help-panel__inner">
+                <button type="button" class="help-panel__close" onclick="toggleHelpPanel()"
+                        aria-label="Close quick reference">&times;</button>
+                <h2 class="help-panel__heading" id="help-panel-heading">LP Quick Reference</h2>
+
+                <h3 class="help-panel__section">Starting an LP</h3>
+                <ul class="help-panel__list">
+                    <li><code>!starttracking</code> in the LP channel — start watching that channel for music links</li>
+                    <li><code>!trackingchannels</code> — see which channels are currently being tracked</li>
+                    <li>Make sure AzuraCast is up + the stream is live</li>
+                    <li>Open this booth → pick your server → members drop song links in Discord → they appear in the queue on the right</li>
+                </ul>
+
+                <h3 class="help-panel__section">During the LP — Booth controls</h3>
+                <ul class="help-panel__list">
+                    <li>Click a queue row to play that song</li>
+                    <li><strong>NEXT</strong> — advance to the next queued song</li>
+                    <li><strong>BACK</strong> — go to the previously played song</li>
+                    <li><strong>AUTO ON/OFF</strong> — toggles auto-advance when a song ends</li>
+                    <li>Type a message in the note bar + <strong>POST</strong> — shows the note on screen with an aesthetic screensaver behind it (BRB / Stand By / end-of-night)</li>
+                </ul>
+
+                <h3 class="help-panel__section">During the LP — Discord commands</h3>
+                <ul class="help-panel__list">
+                    <li><code>!djnote &lt;message&gt;</code> — post a note on the booth screen (same as the note bar)</li>
+                    <li><code>!djclear</code> — clear the current note off the booth</li>
+                    <li><code>!djmenu</code> — show all DJ Booth commands in chat</li>
+                    <li><code>!listsongs</code> — show tracked links so far in chronological order</li>
+                    <li><code>!deletelinks &lt;numbers&gt;</code> — delete specific links from the queue by their list number</li>
+                    <li><code>!ballot</code> — post a voting ballot for songs that have been played</li>
+                </ul>
+
+                <h3 class="help-panel__section">Ending the LP</h3>
+                <ul class="help-panel__list">
+                    <li>Post a closing note ("Thanks for listening" etc.)</li>
+                    <li><code>!stoptracking</code> — stop tracking the channel</li>
+                    <li><code>!topsongs</code> — read all ballot reactions + announce the top voted songs</li>
+                    <li><code>!exportlinks</code> — export the full queue as a text list (admin)</li>
+                    <li><code>!exporttrp</code> — export Suno/YouTube links as a TRP playlist (admin)</li>
+                    <li><code>!clearlinks</code> — clear all tracked links (admin)</li>
+                    <li><strong>× ALL</strong> button on the queue — clears the booth queue</li>
+                    <li><strong>✓ PLAYED</strong> button on the queue — removes only played songs</li>
+                </ul>
+
+                <h3 class="help-panel__section">Need anything else?</h3>
+                <ul class="help-panel__list">
+                    <li><code>!utilitybot</code> — full list of bot commands</li>
+                    <li><code>!utilitybot &lt;command&gt;</code> — details on a single command</li>
+                    <li><code>!linkstats</code> — stats about tracked links</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="player-area">
+            <!-- Away-mode screensaver — appears (with a note banner over it)
+                 when the host posts a note. Audio keeps playing underneath.
+                 src is set dynamically by JS — picks a random video from
+                 the SCREENSAVER_VIDEOS list each time the host goes away.
+                 Arrow buttons let the host cycle through other videos. -->
+            <video id="screensaver-video" class="screensaver" muted loop playsinline preload="metadata"></video>
+            <button id="screensaver-prev" class="screensaver-nav screensaver-nav--prev"
+                    onclick="prevScreensaver()" title="Previous screensaver" aria-label="Previous screensaver">
+                <span aria-hidden="true">&#10094;</span>
+            </button>
+            <button id="screensaver-next" class="screensaver-nav screensaver-nav--next"
+                    onclick="nextScreensaver()" title="Next screensaver" aria-label="Next screensaver">
+                <span aria-hidden="true">&#10095;</span>
+            </button>
+            <div id="note-banner">
+                <div class="note-text" id="note-text"></div>
+            </div>
+            <div id="start-overlay" onclick="startSession()">
+                <div class="start-ring">
+                    <span class="play-icon">&#9654;</span>
+                </div>
+                <div class="start-hint">Click to start</div>
+            </div>
+            <div id="player-container">
+                <div id="waiting-screen">
+                    <div class="icon">&#9835;</div>
+                    <div class="msg">Waiting for links...</div>
+                </div>
+            </div>
+            <!-- Co-host badge: shown only in Host mode (body.booth-host-mode).
+                 Sits in #player-area as a sibling of #player-container so it
+                 survives the innerHTML swaps that happen on every song. -->
+            <div id="host-badge">📋 HOST — controls sync to the DJ · audio muted (click 🔊 to monitor)</div>
+        </div>
+
+        <div id="controls">
+            <button class="btn" onclick="skipPrev()">&#9664; BACK</button>
+            <button class="btn btn-pause paused" id="btn-pause" onclick="togglePause()">AUTO OFF</button>
+            <button class="btn btn-next" id="btn-next" onclick="skipNext()">NEXT &#9654;</button>
+            <button class="btn btn-mute" id="btn-mute" onclick="toggleMute()" title="Mute/unmute audio">&#128266;</button>
+            <span id="timer-display"></span>
+        </div>
+
+        <div id="note-bar">
+            <input type="text" id="note-input" placeholder="Type a note to show on screen..."
+                   onkeydown="if(event.key==='Enter')sendNote()">
+            <button class="btn btn-note" onclick="sendNote()">POST</button>
+            <button class="btn btn-note btn-away" id="away-btn"
+                    onclick="toggleAwayMode()" title="Play a screensaver background (no note text)">AWAY</button>
+            <button class="btn btn-note" onclick="clearNote()">CLEAR</button>
+        </div>
+    </main>
+
+    <!-- ♪ ──────── QUEUE SIDEBAR ──────── ♪ -->
+    <aside id="queue-sidebar">
+        <div class="brand-header">
+            <img src="/booth/logo.png" alt="" class="brand-logo" id="brand-logo" onclick="uploadLogo()" title="Click to change logo" style="cursor:pointer;">
+            <span class="brand-name" id="brand-name" ondblclick="renameBrand(this)" title="Double-click to rename">STARDUST</span>
+            <button class="mode-toggle" id="mode-toggle" onclick="toggleMode()"
+                title="Click to switch role. DJ plays audio (screen-share this browser). Host has same controls but no audio (use when someone else is the DJ).">
+                🎧 DJ
+            </button>
+        </div>
+        <div class="queue-header">
+            QUEUE <span class="queue-count" id="queue-count"></span>
+            <span class="q-clear-btn" onclick="clearPlayedSongs()" title="Remove played songs" style="margin-right:6px;">&#10003; PLAYED</span>
+            <span class="q-clear-btn" onclick="clearAllSongs()" title="Clear all songs">&times; ALL</span>
+        </div>
+        <div class="add-track-row" id="add-track-row">
+            <input type="text" id="add-track-input"
+                   placeholder="🔗  Paste a URL to add a track..."
+                   onkeydown="if(event.key==='Enter') addTrackManual()"
+                   autocomplete="off" spellcheck="false">
+            <button class="add-track-btn" onclick="addTrackManual()"
+                    title="Add track to the queue">+</button>
+        </div>
+        <div id="queue-list">
+            <div class="q-empty">No songs yet</div>
+        </div>
+    </aside>
+
+    <!-- ♪ ──────── EXTERNAL APIs ──────── ♪ -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="https://w.soundcloud.com/player/api.js"></script>
+
+    <script>
+    /* ╭──────────────────────────────────────── ♱ · STATE · ♱ ─╮ */
+
+    let queue = [];
+    let currentIndex = -1;
+    let isPaused = true;     // auto-advance starts OFF; host turns it on when ready
+    let isWaiting = true;
+
+    // ── Outro: a fixed song pinned to the end of the queue every poll. It's a
+    //    client-side pin (not a DB row). The host can delete it to hide it for
+    //    the current session; it returns on refresh / new session.
+    const OUTRO_URL = 'https://suno.com/s/QjFG1gi8x1cAatFM';
+    let outroDeleted = false;
+    function makeOutroSong() {
+        return { id: 'outro', url: OUTRO_URL, platform: 'Suno', username: 'outro',
+                 title: 'outro', emoji: '♪', played: false, position: null, _outro: true };
+    }
+    function appendOutro() {
+        if (outroDeleted) return;
+        if (queue.some(function(s) { return s.id === 'outro'; })) return;
+        queue.push(makeOutroSong());
+        preResolveSuno(OUTRO_URL);   // warm it up so it's instant when reached
+    }
+
+    // ── Drop-links invite: a server invite the host shares so listeners in a
+    //    bot-less LP can join and drop their links in a tracked channel. ──
+    const INVITE_URL = '#';
+    function copyInvite() {
+        const label = document.getElementById('invite-btn-label');
+        function flash() {
+            if (!label) return;
+            const prev = label.dataset.base || label.textContent;
+            label.dataset.base = prev;
+            label.textContent = 'COPIED!';
+            setTimeout(function() { label.textContent = label.dataset.base; }, 1500);
+        }
+        function fallback() {
+            const ta = document.createElement('textarea');
+            ta.value = INVITE_URL;
+            ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.focus(); ta.select();
+            try { document.execCommand('copy'); flash(); } catch (e) {}
+            document.body.removeChild(ta);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(INVITE_URL).then(flash).catch(fallback);
+        } else {
+            fallback();
+        }
+    }
+    let sessionStarted = false;
+    let knownIds = new Set();
+    let deletedIds = new Set();   // songs the host removed — never resurrect on poll
+    let sunoResolved = {};
+    let customOrder = false;
+    let isMuted = false;
+    let ytPlayer = null;
+    let ytReady = false;
+    let pendingYT = null;   // { videoId, originalUrl } stashed if YT API not ready
+    let advanceTimer = null;
+    let timerRemaining = 0;
+    let timerInterval = null;
+
+    /* ╭───────────────────────────── ♱ · CO-HOST SYNC STATE · ♱ ─╮
+     * Co-host mode (DJ vs Host) and the high-water marks used to
+     * reconcile playback state across two browsers. The rule:
+     *   "Only react to a server state change when the polled value
+     *    DIFFERS from what we saw last poll AND differs from our
+     *    local state."
+     * That way our own optimistic updates don't trigger phantom
+     * reloads while our POST is still in flight.
+     */
+    let mode = 'DJ';                 // 'DJ' (audio plays) | 'Host' (no audio)
+    let currentLinkId = null;        // link_id of song currently displayed
+    let lastServerLinkId = null;     // last link_id we saw from /api/queue
+    let lastServerIsPaused = false;  // last is_paused we saw from /api/queue
+
+    // Read ?guild=ID once at startup — used by every endpoint and as the
+    // localStorage key suffix for per-guild settings (mode, brand name, logo)
+    const urlParams = new URLSearchParams(window.location.search);
+    const guildParam = urlParams.get('guild');
+    const guildSuffix = '?guild=' + (guildParam || '0');
+
+    // ── No-Server Mode: when ?solo=<id> is present, every queue call targets
+    //    the file-backed /api/solo endpoints instead of MySQL. ──
+    const soloParam = new URLSearchParams(window.location.search).get('solo');
+    const isSolo = !!soloParam;
+
+    function queueApi(path) {
+        if (isSolo) {
+            return '/api/solo/sessions/' + encodeURIComponent(soloParam) + '/queue' + path;
+        }
+        return '/api/queue' + path + guildSuffix;
+    }
+
+    const queueUrl = isSolo ? queueApi('') : (guildParam ? '/api/queue?guild=' + guildParam : '/api/queue');
+
+    /* ╭──────────────────────────────── ♱ · 𓆩🤍𓆪 · ♱ ─╮
+     *      SECTION: context header — where am I / which mode
+     * ╰─ ♱ · 𓆩🤍𓆪 · ♱ ────────────────────────────────╯ */
+
+    function renderContextHeader(info) {
+        // info: {name, icon, meta, mode: 'solo'|'bot', status}
+        const iconEl = document.getElementById('ctx-icon');
+        if (info.icon) {
+            iconEl.textContent = '';
+            iconEl.style.backgroundImage = 'url(' + info.icon + ')';
+        } else {
+            iconEl.style.backgroundImage = '';
+            iconEl.textContent = (info.name || '?').charAt(0).toUpperCase();
+        }
+        document.getElementById('ctx-name').textContent = info.name || '';
+        document.getElementById('ctx-meta').textContent = info.meta || '';
+        const badge = document.getElementById('ctx-badge');
+        badge.textContent = info.mode === 'solo' ? 'No-server mode' : 'Bot mode';
+        badge.className = 'booth-context__badge ' + (info.mode === 'solo' ? 'solo' : 'bot');
+        document.getElementById('ctx-status').textContent = info.status || '';
+    }
+
+    function refreshContextHeader() {
+        if (isSolo) {
+            fetch('/api/solo/sessions')
+                .then(function(r){ return r.json(); })
+                .then(function(list){
+                    const s = (list || []).find(function(x){ return x.id === soloParam; }) || {};
+                    renderContextHeader({
+                        name: s.name || 'No-Server Session',
+                        icon: s.icon ? '/booth/solo_icons/' + s.icon.split('/').pop() : '',
+                        meta: '· ' + (s.song_count || 0) + ' songs',
+                        mode: 'solo', status: 'Solo · local',
+                    });
+                })
+                .catch(function(){
+                    renderContextHeader({name:'No-Server Session', mode:'solo', status:'Solo · local'});
+                });
+        } else {
+            // Bot mode: reuse the guild list the picker already exposes.
+            fetch('/api/guilds')
+                .then(function(r){ return r.json(); })
+                .then(function(list){
+                    const g = (list || []).find(function(x){ return String(x.guild_id) === String(guildParam); }) || {};
+                    renderContextHeader({
+                        name: g.name || ('Server ' + guildParam),
+                        icon: g.icon || '',
+                        meta: '· ' + (g.song_count || 0) + ' songs',
+                        mode: 'bot', status: 'Connected',
+                    });
+                })
+                .catch(function(){
+                    renderContextHeader({name:'Server ' + guildParam, mode:'bot', status:'Connected'});
+                });
+        }
+    }
+
+    /* ╭───────────────────────────────── ♱ · NO-SERVER WATCHER TOOLS · ♱ ─╮ */
+    /*      Solo-only: auto-add toggle + personal watcher-token controls.    */
+    /* ╰─ ♱ · 𓆩🤍𓆪 · ♱ ──────────────────────────────────────────────────────╯ */
+
+    function setWatcherEnabled(enabled) {
+        if (!isSolo) return;
+        fetch('/api/solo/sessions/' + encodeURIComponent(soloParam) + '/watcher', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: enabled })
+        }).catch(function(){});
+    }
+    function connectWatcher() {
+        fetch('/api/solo/watcher-token', { method: 'POST' })
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                document.getElementById('watcher-token-field').value = d.token || '';
+                document.getElementById('watcher-token-box').style.display = 'flex';
+            }).catch(function(){});
+    }
+    function regenWatcherToken() {
+        fetch('/api/solo/watcher-token/regenerate', { method: 'POST' })
+            .then(function(r){ return r.json(); })
+            .then(function(d){ document.getElementById('watcher-token-field').value = d.token || ''; })
+            .catch(function(){});
+    }
+
+    /* ╭──────────────────────────────────── ♱ · YOUTUBE API · ♱ ─╮ */
+
+    function onYouTubeIframeAPIReady() {
+        ytReady = true;
+        if (pendingYT) {
+            const p = pendingYT;
+            pendingYT = null;
+            loadYouTube(p.videoId, p.originalUrl);
+        }
+    }
+
+    function loadYouTube(videoId, originalUrl) {
+        if (!ytReady) {
+            pendingYT = { videoId: videoId, originalUrl: originalUrl };
+            return;
+        }
+
+        clearAllTimers();
+
+        const container = document.getElementById('player-container');
+        container.innerHTML = '<div id="yt-target"></div>';
+
+        ytPlayer = new YT.Player('yt-target', {
+            width: '100%',
+            height: '100%',
+            videoId: videoId,
+            playerVars: {
+                autoplay: 1,
+                controls: 1,
+                rel: 0,
+                modestbranding: 1,
+                iv_load_policy: 3,
+                // Start muted when this browser is muted (Host default) so a
+                // YouTube song doesn't blare for a moment before applyMute
+                // catches it. applyMute / toggleMute can unmute afterward.
+                mute: isMuted ? 1 : 0,
+                // Set origin so YouTube allows the embed on more videos
+                origin: window.location.origin
+            },
+            events: {
+                onStateChange: function(e) {
+                    console.log('[DJ] YT state:', e.data, '(0=ended, 1=playing, 2=paused, 3=buffering)');
+                    if (e.data === YT.PlayerState.ENDED && !isPaused) {
+                        console.log('[DJ] YT ended, advancing...');
+                        advanceQueue();
+                    }
+                },
+                onError: function(e) {
+                    console.log('[DJ] YT error code:', e.data, '— showing fallback overlay');
+                    showYouTubeFallback(videoId, originalUrl, e.data);
+                }
+            }
+        });
+    }
+
+    /* ╭──────────────────────── ♱ · YOUTUBE ERROR FALLBACK · ♱ ─╮ */
+
+    function showYouTubeFallback(videoId, originalUrl, errorCode) {
+        // YouTube error codes:
+        //   2   - invalid videoId
+        //   5   - HTML5 player issue
+        //   100 - video removed / private
+        //   101 - embed disabled by uploader
+        //   150 - same as 101 (different surface)
+        clearAllTimers();
+
+        let reason;
+        switch (errorCode) {
+            case 2:   reason = 'Invalid video ID';                       break;
+            case 5:   reason = 'Player error — try opening directly';    break;
+            case 100: reason = 'Video unavailable, private, or removed'; break;
+            case 101:
+            case 150: reason = 'Embedding disabled by the uploader';     break;
+            default:  reason = 'Playback failed (code ' + errorCode + ')';
+        }
+
+        const url = originalUrl || ('https://www.youtube.com/watch?v=' + videoId);
+        // hqdefault is the most reliable thumbnail size — maxresdefault
+        // is missing for a lot of older videos and 404s
+        const thumb = 'https://i.ytimg.com/vi/' + videoId + '/hqdefault.jpg';
+
+        const container = document.getElementById('player-container');
+        container.innerHTML =
+            '<div style="display:flex;flex-direction:column;align-items:center;' +
+            'justify-content:center;height:100%;gap:18px;padding:20px;' +
+            'background:linear-gradient(135deg,#0a0a1a 0%,#1a0808 50%,#0f0f1e 100%);">' +
+            '<img src="' + thumb + '" alt="" ' +
+            'onerror="this.style.display=\'none\'" ' +
+            'style="max-width:420px;max-height:48%;border-radius:10px;' +
+            'box-shadow:0 8px 32px rgba(0,0,0,0.6);">' +
+            '<div style="color:#ff5555;font-size:18px;font-weight:800;' +
+            'letter-spacing:3px;">YOUTUBE PLAYBACK BLOCKED</div>' +
+            '<div style="color:#aaa;font-size:13px;text-align:center;' +
+            'max-width:420px;">' + reason + '</div>' +
+            '<a href="' + url + '" target="_blank" rel="noopener" ' +
+            'style="background:#ff0033;color:white;padding:12px 36px;' +
+            'border-radius:6px;text-decoration:none;font-weight:700;' +
+            'font-size:15px;letter-spacing:2px;box-shadow:0 4px 16px rgba(255,0,51,0.4);">' +
+            '&#9654; OPEN ON YOUTUBE</a>' +
+            '<div style="color:#666;font-size:11px;letter-spacing:1px;">' +
+            'Auto-skipping in 10s &mdash; click NEXT to skip now</div>' +
+            '</div>';
+
+        startAutoAdvanceTimer(10);
+    }
+
+    function extractYouTubeId(url) {
+        let match = url.match(/youtu\.be\/([^?&#/]+)/);
+        if (match) return match[1];
+        match = url.match(/[?&]v=([^&#]+)/);
+        if (match) return match[1];
+        match = url.match(/\/shorts\/([^?&#/]+)/);
+        if (match) return match[1];
+        match = url.match(/\/embed\/([^?&#/]+)/);
+        if (match) return match[1];
+        match = url.match(/\/live\/([^?&#/]+)/);
+        if (match) return match[1];
+        return null;
+    }
+
+    /* ╭──────────────────────────────── ♱ · SOUNDCLOUD · ♱ ─╮ */
+
+    function loadSoundCloud(url) {
+        clearAllTimers();
+        const container = document.getElementById('player-container');
+        const encoded = encodeURIComponent(url);
+        container.innerHTML =
+            '<iframe id="sc-frame" allow="autoplay" ' +
+            'src="https://w.soundcloud.com/player/?url=' + encoded +
+            '&auto_play=true&color=%23f0d48a&buying=false&sharing=false' +
+            '&download=false&show_artwork=true&show_playcount=false"></iframe>';
+
+        const iframe = document.getElementById('sc-frame');
+        iframe.onload = function() {
+            try {
+                const widget = SC.Widget(iframe);
+                widget.bind(SC.Widget.Events.FINISH, function() {
+                    if (!isPaused) advanceQueue();
+                });
+            } catch(e) {
+                // Widget API bind failed — fall back to a long generic timer
+                startAutoAdvanceTimer(900);
+            }
+        };
+
+        // Safety net: if SC widget doesn't fire, advance after 30 min
+        // (covers long mixes / DJ sets, not just standard 3-5 min tracks).
+        startAutoAdvanceTimer(1800);
+    }
+
+    /* ╭──────────────────────────────── ♱ · SUNO EMBED · ♱ ─╮ */
+
+    function extractSunoId(url) {
+        let match = url.match(/suno\.\w+\/s(?:ong)?\/([^?&#/]+)/);
+        if (match) return match[1];
+        // Try alternate pattern: /s/ path
+        match = url.match(/suno\.\w+\/s\/([^?&#/]+)/);
+        if (match) return match[1];
+        return null;
+    }
+
+    function buildSunoPlayer(container, data, originalUrl) {
+        if (data.video_url) {
+            // Music video + audio together. Video lives at the BOTTOM of
+            // the player area as a smaller widget — no album art, no
+            // lyrics, no overlap. Empty dark space above it on purpose
+            // (clean stage feel; copyright-safer for Twitch screen share).
+            let videoFailed = false;
+            container.innerHTML =
+                '<div class="suno-video-stage">' +
+                  '<video id="suno-video" autoplay loop muted playsinline ' +
+                         'class="suno-video-stage__video">' +
+                    '<source src="' + data.video_url + '" type="video/mp4">' +
+                  '</video>' +
+                  '<audio id="suno-audio-track" autoplay controls ' +
+                         'class="suno-video-stage__audio">' +
+                    '<source src="' + data.audio_url + '" type="audio/mpeg">' +
+                  '</audio>' +
+                  '<a href="' + originalUrl + '" target="_blank" ' +
+                     'class="suno-video-stage__open">Open on Suno</a>' +
+                '</div>';
+
+            const video = document.getElementById('suno-video');
+            const audio = document.getElementById('suno-audio-track');
+            const source = video.querySelector('source');
+
+            function fallbackToAudio() {
+                if (videoFailed) return;
+                videoFailed = true;
+                console.log('[DJ] Suno video not available, trying audio only');
+                buildSunoAudioPlayer(container, data, originalUrl);
+            }
+
+            video.play().catch(function() {
+                console.log('[DJ] Suno video autoplay blocked');
+            });
+
+            audio.play().catch(function() {
+                console.log('[DJ] Suno audio autoplay blocked');
+            });
+
+            // Same advance-once guard as the audio-only path so the `ended`
+            // event and the `timeupdate` near-end fallback can't double-fire.
+            let advancedThisSong = false;
+            function advanceOnce(reason) {
+                if (advancedThisSong) return;
+                advancedThisSong = true;
+                console.log('[DJ] Suno audio+video advancing (' + reason + ')');
+                clearAllTimers();
+                if (!isPaused) advanceQueue();
+            }
+
+            audio.addEventListener('ended', function() {
+                advanceOnce('ended event');
+            });
+            audio.addEventListener('timeupdate', function() {
+                if (advancedThisSong) return;
+                if (audio.duration > 0 &&
+                    audio.currentTime >= audio.duration - 0.4) {
+                    advanceOnce('near-end timeupdate');
+                }
+            });
+
+            // Once audio metadata loads we know the EXACT song length —
+            // reset the safety-net timer to (duration + 20s buffer) so we
+            // never cut off a song that's running long. Fires before the
+            // generous 15-min fallback below would ever kick in.
+            audio.addEventListener('loadedmetadata', function() {
+                if (audio.duration > 0 && isFinite(audio.duration)) {
+                    startAutoAdvanceTimer(Math.ceil(audio.duration) + 20);
+                }
+            });
+
+            // Error on video — fall back to audio-only player
+            video.addEventListener('error', fallbackToAudio);
+            if (source) source.addEventListener('error', fallbackToAudio);
+
+            // Safety: if video hasn't started in 3 seconds, fall back
+            // But only if the tab is visible (background tabs pause video)
+            setTimeout(function() {
+                if (!videoFailed && !document.hidden && video.readyState < 2) {
+                    console.log('[DJ] Suno video timeout, falling back to audio');
+                    fallbackToAudio();
+                }
+            }, 3000);
+
+            // Hard fallback — 15 min covers any Suno song length. Gets
+            // replaced by the real duration via `loadedmetadata` above
+            // as soon as the audio reports its length.
+            startAutoAdvanceTimer(900);
+            return;
+        }
+
+        buildSunoAudioPlayer(container, data, originalUrl);
+    }
+
+    function buildSunoAudioPlayer(container, data, originalUrl) {
+        const hasLyrics = !!(data.lyrics && data.lyrics.trim().length > 30);
+
+        if (hasLyrics) {
+            // Split layout: art + brand on the left, scrolling lyrics on
+            // the right, audio controls full-width below.
+            const artHtml = data.image_url
+                ? '<img class="suno-player__art" src="' + data.image_url +
+                  '" onerror="this.style.display=\'none\'">'
+                : '<div style="font-size:84px;animation:pulse 2.5s ease-in-out infinite;">&#9835;</div>';
+            const bgStyle = data.image_url
+                ? 'background-image:url(' + data.image_url + ');'
+                : '';
+
+            container.innerHTML =
+                '<div class="suno-player">' +
+                  '<div class="suno-player__bg-image" style="' + bgStyle + '"></div>' +
+                  '<div class="suno-player__overlay"></div>' +
+                  '<div class="suno-player__inner">' +
+                    '<div class="suno-player__top">' +
+                      '<div class="suno-player__art-col">' +
+                        artHtml +
+                        '<div class="suno-player__brand">SUNO</div>' +
+                      '</div>' +
+                      '<div class="suno-player__lyrics-col">' +
+                        '<div class="suno-player__lyrics" id="suno-lyrics-track"></div>' +
+                      '</div>' +
+                    '</div>' +
+                    '<audio id="suno-audio" class="suno-player__audio" controls autoplay>' +
+                      '<source src="' + data.audio_url + '" type="audio/mpeg">' +
+                    '</audio>' +
+                  '</div>' +
+                  '<a class="suno-player__open-link" href="' + originalUrl +
+                  '" target="_blank">Open on Suno</a>' +
+                '</div>';
+
+            renderSunoLyrics(data.lyrics, data.duration);
+        } else {
+            // No lyrics — keep the centered fullwidth fallback layout.
+            const bgImage = data.image_url
+                ? 'background:url(' + data.image_url + ') center/cover no-repeat, ' +
+                  'linear-gradient(135deg,#0c0c10,#1a1408);'
+                : 'background:linear-gradient(135deg,#0c0c10 0%,#1a1408 50%,#08080c 100%);';
+
+            container.innerHTML =
+                '<div style="display:flex;flex-direction:column;align-items:center;' +
+                'justify-content:center;height:100%;gap:20px;position:relative;' + bgImage + '">' +
+                '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.45);' +
+                'backdrop-filter:blur(8px);"></div>' +
+                (data.image_url
+                    ? '<img src="' + data.image_url + '" ' +
+                      'style="width:240px;height:240px;border-radius:12px;object-fit:cover;' +
+                      'box-shadow:0 8px 32px rgba(0,0,0,0.6);position:relative;z-index:1;" ' +
+                      'onerror="this.style.display=\'none\'">'
+                    : '<div style="font-size:72px;animation:pulse 2.5s ease-in-out infinite;' +
+                      'position:relative;z-index:1;">&#9835;</div>') +
+                '<div style="color:var(--accent);font-size:22px;font-weight:700;' +
+                'letter-spacing:2px;position:relative;z-index:1;">SUNO</div>' +
+                '<audio id="suno-audio" controls autoplay ' +
+                'style="width:80%;max-width:560px;position:relative;z-index:1;' +
+                '">' +
+                '<source src="' + data.audio_url + '" type="audio/mpeg">' +
+                '</audio>' +
+                '<a href="' + originalUrl + '" target="_blank" ' +
+                'style="color:rgba(255,255,255,0.5);font-size:12px;text-decoration:none;' +
+                'position:relative;z-index:1;">Open on Suno</a>' +
+                '</div>';
+        }
+
+        const audio = document.getElementById('suno-audio');
+
+        // Guard against double-advancing — the `ended` listener and the
+        // `timeupdate` near-end fallback can race. Whichever fires first
+        // flips the flag, the other one bails.
+        let advancedThisSong = false;
+        function advanceOnce(reason) {
+            if (advancedThisSong) return;
+            advancedThisSong = true;
+            console.log('[DJ] Suno audio advancing (' + reason + ')');
+            clearAllTimers();
+            if (!isPaused) advanceQueue();
+        }
+
+        audio.play().catch(function() {
+            console.log('[DJ] Suno autoplay blocked, waiting for click');
+        });
+
+        audio.addEventListener('ended', function() {
+            advanceOnce('ended event');
+        });
+
+        // Belt-and-suspenders: some browsers don't fire `ended` reliably for
+        // direct CDN audio (range-request quirks, background-tab throttling),
+        // so we also watch playback position and advance when within ~0.4s
+        // of the end. Whichever event reaches `advanceOnce` first wins.
+        audio.addEventListener('timeupdate', function() {
+            if (advancedThisSong) return;
+            if (audio.duration > 0 &&
+                audio.currentTime >= audio.duration - 0.4) {
+                advanceOnce('near-end timeupdate');
+            }
+        });
+
+        // Once metadata loads we have the song's actual length — set
+        // the safety-net timer to (duration + 20s) so we never cut off
+        // a Suno track that runs longer than the generic fallback.
+        audio.addEventListener('loadedmetadata', function() {
+            if (audio.duration > 0 && isFinite(audio.duration)) {
+                startAutoAdvanceTimer(Math.ceil(audio.duration) + 20);
+            }
+        });
+
+        audio.addEventListener('error', function() {
+            console.log('[DJ] Suno audio error, falling back to embed');
+            if (data.embed_url) {
+                container.innerHTML =
+                    '<iframe src="' + data.embed_url + '" ' +
+                    'allow="autoplay; clipboard-write; encrypted-media; fullscreen" ' +
+                    'style="width:100%;height:100%;border:none;border-radius:12px;">' +
+                    '</iframe>';
+            }
+            startAutoAdvanceTimer(900);
+        });
+
+        // Hard fallback if both `ended` and `timeupdate` somehow fail.
+        // 15 minutes — longer than any reasonable Suno song. Gets
+        // immediately replaced by the real duration via `loadedmetadata`
+        // above once the audio reports its length.
+        startAutoAdvanceTimer(900);
+    }
+
+    /* ╭───────────────────── ♱ · SUNO LYRICS PANEL · ♱ ─╮ */
+
+    // Render Suno lyrics as a STATIC scrollable reference panel — no fake
+    // karaoke highlighting, no auto-scroll. Per-line timestamps aren't
+    // available for Suno tracks (and free transcription is unreliable),
+    // so we don't pretend to sync. Host scrolls manually if they want.
+    /* ╭──────────────────────── ♱ · LYRICS AUTO-SCROLL ENGINE · ♱ ─╮ */
+    // Teleprompter-style crawl of the Suno lyrics column. Speed (px/sec) is
+    // host-controlled via the slider; 0 = stopped. Not vocal-synced (Suno has
+    // no per-line timestamps) — a steady crawl the host tunes by feel.
+    var lyricsScroll = {
+        rafId: null, speed: 0, lastTs: 0, pos: 0,
+        yieldUntil: 0, programmatic: false,
+        col: function () { return document.querySelector('.suno-player__lyrics-col'); },
+        setSpeed: function (px) {
+            this.speed = px;
+            if (px > 0) { this.start(); } else { this.stop(); }
+        },
+        start: function () {
+            if (this.rafId || !this.col()) { return; }
+            this.lastTs = 0;
+            var self = this;
+            this.rafId = requestAnimationFrame(function (ts) { self.tick(ts); });
+        },
+        stop: function () {
+            if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
+        },
+        reset: function () {
+            this.stop();
+            var el = this.col();
+            if (el) { el.scrollTop = 0; }
+            this.pos = 0; this.yieldUntil = 0;
+        },
+        tick: function (ts) {
+            var el = this.col();
+            if (!el || this.speed <= 0) { this.rafId = null; return; }
+            if (!this.lastTs) { this.lastTs = ts; this.pos = el.scrollTop; }
+            var dt = (ts - this.lastTs) / 1000; this.lastTs = ts;
+            // Honor a recent manual drag, then resume from where they left it.
+            if (Date.now() >= this.yieldUntil) {
+                var max = el.scrollHeight - el.clientHeight;
+                this.pos = Math.min(max, this.pos + this.speed * dt);
+                this.programmatic = true;
+                el.scrollTop = Math.round(this.pos);   // float accumulator → no sub-px stalls
+                this.programmatic = false;
+            } else {
+                this.pos = el.scrollTop;
+            }
+            var self = this;
+            this.rafId = requestAnimationFrame(function (t) { self.tick(t); });
+        }
+    };
+
+    function setLyricsSpeed(v) {
+        var px = parseInt(v, 10) || 0;
+        lyricsScroll.setSpeed(px);
+        var out = document.getElementById('lyrics-speed-val');
+        if (out) { out.textContent = px === 0 ? 'off' : String(px); }
+        try { localStorage.setItem('booth.lyrics_scroll_speed', String(px)); } catch (e) {}
+    }
+
+    // − / + buttons: nudge the speed by a fixed step and sync the slider.
+    function bumpLyricsSpeed(dir) {
+        var sl = document.getElementById('lyrics-speed');
+        if (!sl) { return; }
+        var step = 100;
+        var v = (parseInt(sl.value, 10) || 0) + dir * step;
+        v = Math.max(parseInt(sl.min, 10), Math.min(parseInt(sl.max, 10), v));
+        sl.value = v;
+        setLyricsSpeed(v);
+    }
+
+    function savedLyricsSpeed() {
+        try {
+            var s = localStorage.getItem('booth.lyrics_scroll_speed');
+            if (s !== null) { return parseInt(s, 10) || 0; }
+        } catch (e) {}
+        return 1000;  // brisk default; slider goes to 3000 for fast
+    }
+
+    // Sync the slider + readout to the saved value on load.
+    (function () {
+        var spd = savedLyricsSpeed();
+        var sl = document.getElementById('lyrics-speed');
+        if (sl) { sl.value = spd; }
+        var out = document.getElementById('lyrics-speed-val');
+        if (out) { out.textContent = spd === 0 ? 'off' : String(spd); }
+    })();
+    /* ╰─ ♱ ─────────────────────────────────────────────────────────────╯ */
+
+    function renderSunoLyrics(text, _totalDurationSec) {
+        const track = document.getElementById('suno-lyrics-track');
+        if (!track) return;
+
+        // Split + drop section markers like [Verse], [Chorus], [Bridge]
+        const lines = text
+            .split(/\r?\n/)
+            .map(function(l) { return l.trim(); })
+            .filter(function(l) {
+                return l.length > 0 && !/^\[[^\]]+\]$/.test(l);
+            });
+
+        if (lines.length === 0) return;
+
+        track.innerHTML = lines.map(function(line) {
+            const safe = line
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            return '<span class="suno-player__lyric-line">' + safe + '</span>';
+        }).join('');
+
+        // (re)start the teleprompter crawl for this freshly-rendered panel
+        lyricsScroll.reset();
+        const spd = savedLyricsSpeed();
+        const slider = document.getElementById('lyrics-speed');
+        if (slider) { slider.value = spd; }
+        const col = document.querySelector('.suno-player__lyrics-col');
+        if (col) {
+            col.addEventListener('scroll', function () {
+                if (lyricsScroll.programmatic) { return; }
+                lyricsScroll.yieldUntil = Date.now() + 800;  // yield to a manual drag
+                lyricsScroll.pos = col.scrollTop;
+            });
+        }
+        lyricsScroll.setSpeed(spd);
+    }
+
+    function patchSongTitle(url, title) {
+        // Suno's title comes back from /api/suno-resolve AFTER /api/queue
+        // returns. Without this patch, the now-playing bar renders with
+        // no title because the queue row had an empty title at render time.
+        if (!title) return;
+        // Use findIndex so we always operate on the live queue reference —
+        // pollQueue replaces `queue = data` every 4s, swapping object refs
+        const idx = queue.findIndex(function(s) { return s.url === url; });
+        if (idx === -1) return;
+        if (queue[idx]._outro) return;   // keep the outro labeled "outro"
+        queue[idx].title = title;
+        if (idx === currentIndex) {
+            updateNowPlaying(queue[idx], currentIndex);
+        }
+    }
+
+    function preResolveSuno(url) {
+        if (sunoResolved[url]) return;
+        sunoResolved[url] = 'pending';
+        fetch('/api/suno-resolve?url=' + encodeURIComponent(url))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                sunoResolved[url] = data;
+                patchSongTitle(url, data.title);
+            })
+            .catch(function() { delete sunoResolved[url]; });
+    }
+
+    async function loadSuno(songId, originalUrl) {
+        clearAllTimers();
+        lyricsScroll.reset();   // stop any prior crawl before this song renders
+        const container = document.getElementById('player-container');
+
+        // Use pre-resolved data if available (keeps user gesture alive)
+        const cached = sunoResolved[originalUrl];
+        if (cached && cached !== 'pending' && cached.audio_url) {
+            patchSongTitle(originalUrl, cached.title);
+            buildSunoPlayer(container, cached, originalUrl);
+            return;
+        }
+
+        container.innerHTML =
+            '<div id="waiting-screen">' +
+            '<div class="icon" style="font-size:48px;animation:pulse 1s ease-in-out infinite;">&#9835;</div>' +
+            '<div class="msg">Loading Suno...</div>' +
+            '</div>';
+
+        try {
+            const resp = await fetch('/api/suno-resolve?url=' + encodeURIComponent(originalUrl));
+            const data = await resp.json();
+            sunoResolved[originalUrl] = data;
+            patchSongTitle(originalUrl, data.title);
+
+            if (data.audio_url) {
+                buildSunoPlayer(container, data, originalUrl);
+                return;
+            }
+
+            if (data.embed_url) {
+                container.innerHTML =
+                    '<iframe src="' + data.embed_url + '" ' +
+                    'allow="autoplay; clipboard-write; encrypted-media; fullscreen" ' +
+                    'style="width:100%;height:100%;border:none;border-radius:12px;">' +
+                    '</iframe>';
+                // Generous timer — Suno embed can't fire ended events through
+                // the iframe, so we wait long enough for any reasonable song.
+                startAutoAdvanceTimer(900);
+                return;
+            }
+        } catch(e) {
+            console.log('[DJ] Suno resolve error:', e);
+        }
+
+        // Final fallback: link button
+        container.innerHTML =
+            '<div id="waiting-screen">' +
+            '<div class="icon" style="font-size:48px;">&#9835;</div>' +
+            '<div class="msg" style="color:var(--accent);font-size:22px;">Suno</div>' +
+            '<a href="' + originalUrl + '" target="_blank" ' +
+            'style="display:inline-block;margin-top:16px;padding:12px 32px;' +
+            'background:var(--accent);color:white;border-radius:6px;' +
+            'text-decoration:none;font-weight:600;font-size:16px;">' +
+            'Open on Suno</a>' +
+            '</div>';
+        startAutoAdvanceTimer(270);
+    }
+
+    /* ╭──────────────────────────────── ♱ · GENERIC EMBED · ♱ ─╮ */
+
+    function loadGenericEmbed(url) {
+        clearAllTimers();
+        const container = document.getElementById('player-container');
+        container.innerHTML =
+            '<iframe src="' + url + '" allow="autoplay" ' +
+            'style="width:100%;height:100%;border:none;"></iframe>' +
+            '<a href="' + url + '" target="_blank" class="fallback-link">' +
+            'Open in new tab</a>';
+
+        // Generic embeds have no way to signal "ended" — use a generous
+        // 15-min safety net so we don't cut off longer tracks.
+        startAutoAdvanceTimer(900);
+    }
+
+    /* ╭──────────────────────────── ♱ · PRODUCER.AI · ♱ ─╮ */
+
+    function loadProducerAi(url) {
+        clearAllTimers();
+        const container = document.getElementById('player-container');
+
+        // Extract UUID from URL: /song/{UUID}
+        const match = url.match(/\/song\/([a-f0-9-]{36})/);
+        if (!match) { loadGenericEmbed(url); return; }
+
+        const uuid = match[1];
+        const audioUrl = 'https://storage.googleapis.com/producer-app-public/clips/' + uuid + '.m4a';
+
+        container.innerHTML =
+            '<div style="display:flex;flex-direction:column;align-items:center;' +
+            'justify-content:center;height:100%;gap:20px;' +
+            'background:linear-gradient(135deg,#08080c 0%,#0c0c12 50%,#0f0f17 100%);">' +
+            '<div style="font-size:72px;animation:pulse 2.5s ease-in-out infinite;">&#127932;</div>' +
+            '<div style="color:#a78bfa;font-size:22px;font-weight:700;letter-spacing:2px;">PRODUCER.AI</div>' +
+            '<audio id="producer-audio" controls autoplay ' +
+            'style="width:80%;max-width:560px;filter:hue-rotate(220deg);">' +
+            '<source src="' + audioUrl + '" type="audio/mp4">' +
+            '</audio>' +
+            '<a href="' + url + '" target="_blank" ' +
+            'style="color:rgba(255,255,255,0.5);font-size:12px;text-decoration:none;">' +
+            'Open on Producer.ai</a>' +
+            '</div>';
+
+        const audio = document.getElementById('producer-audio');
+
+        audio.play().catch(function() {
+            console.log('[DJ] Producer.ai autoplay blocked');
+        });
+
+        audio.addEventListener('ended', function() {
+            console.log('[DJ] Producer.ai ended, advancing...');
+            clearAllTimers();
+            if (!isPaused) advanceQueue();
+        });
+
+        // Use the audio's real duration once metadata loads — same pattern
+        // as Suno. Replaces the generic 15-min fallback below with an
+        // exact (duration + 20s) timer.
+        audio.addEventListener('loadedmetadata', function() {
+            if (audio.duration > 0 && isFinite(audio.duration)) {
+                startAutoAdvanceTimer(Math.ceil(audio.duration) + 20);
+            }
+        });
+
+        audio.addEventListener('error', function() {
+            console.log('[DJ] Producer.ai audio error, trying iframe');
+            loadGenericEmbed(url);
+        });
+
+        startAutoAdvanceTimer(900);
+    }
+
+    /* ╭──────────────────────────── ♱ · DIRECT AUDIO FILE · ♱ ─╮
+     *
+     * Plays any URL whose path ends in a known audio extension
+     * (.mp3 / .m4a / .wav / .ogg / .flac / .opus). Modeled on the Suno
+     * audio-only fallback player but without the Suno-specific scrape:
+     * we drop the URL straight into an <audio> element and let the
+     * browser handle codec sniffing.
+     */
+    function loadDirectAudio(url) {
+        clearAllTimers();
+        const container = document.getElementById('player-container');
+
+        container.innerHTML =
+            '<div style="display:flex;flex-direction:column;align-items:center;' +
+            'justify-content:center;height:100%;gap:20px;position:relative;' +
+            'background:linear-gradient(135deg,#0a0a1a 0%,#1a0a30 50%,#0f0f1e 100%);">' +
+            '<div style="font-size:96px;animation:pulse 2.5s ease-in-out infinite;' +
+            'color:var(--accent);">&#9835;</div>' +
+            '<div style="color:var(--accent);font-size:22px;font-weight:700;' +
+            'letter-spacing:3px;">AUDIO</div>' +
+            '<audio id="direct-audio" controls autoplay ' +
+            'style="width:80%;max-width:560px;filter:hue-rotate(320deg);">' +
+            '<source src="' + url + '">' +
+            '</audio>' +
+            '<a href="' + url + '" target="_blank" rel="noopener" ' +
+            'style="color:rgba(255,255,255,0.5);font-size:12px;' +
+            'text-decoration:none;">Open audio file</a>' +
+            '</div>';
+
+        const audio = document.getElementById('direct-audio');
+
+        // Guard against double-advance — both `ended` and the near-end
+        // timeupdate can race for the last few hundred ms. Whichever
+        // wins flips the flag and the other bails. Mirrors the Suno
+        // audio player's pattern.
+        let advancedThisSong = false;
+        function advanceOnce(reason) {
+            if (advancedThisSong) return;
+            advancedThisSong = true;
+            console.log('[DJ] Direct audio advancing (' + reason + ')');
+            clearAllTimers();
+            if (!isPaused) advanceQueue();
+        }
+
+        audio.play().catch(function() {
+            console.log('[DJ] Direct audio autoplay blocked, waiting for click');
+        });
+
+        audio.addEventListener('ended', function() {
+            advanceOnce('ended event');
+        });
+        audio.addEventListener('timeupdate', function() {
+            if (advancedThisSong) return;
+            if (audio.duration > 0 &&
+                audio.currentTime >= audio.duration - 0.4) {
+                advanceOnce('near-end timeupdate');
+            }
+        });
+
+        audio.addEventListener('error', function() {
+            console.log('[DJ] Direct audio error — file may be unreachable');
+            // 30s grace before auto-skipping so the user can react.
+            startAutoAdvanceTimer(30);
+        });
+
+        // Hard fallback if both `ended` and the near-end `timeupdate`
+        // somehow fail to fire (some range-request quirks, background-
+        // tab throttling on certain browsers). 6 minutes covers most
+        // any reasonable song.
+        startAutoAdvanceTimer(360);
+    }
+
+    /* ╭──────────────────────────────── ♱ · UPLOADED VIDEO · ♱ ─╮ */
+
+    function loadUploadedVideo(url) {
+        clearAllTimers();
+        const container = document.getElementById('player-container');
+        container.innerHTML =
+            '<video id="upload-video" autoplay loop controls ' +
+            'style="width:100%;height:100%;object-fit:contain;background:#000;">' +
+            '<source src="' + url + '">' +
+            '</video>';
+
+        const video = document.getElementById('upload-video');
+        video.play().catch(function() {
+            console.log('[DJ] Upload video autoplay blocked');
+        });
+
+        // No auto-advance — loops until user clicks NEXT
+    }
+
+    /* ╭──────────────────────────────── ♱ · TIMERS · ♱ ─╮ */
+
+    function startAutoAdvanceTimer(seconds) {
+        clearAllTimers();
+        timerRemaining = seconds;
+        updateTimerDisplay();
+
+        timerInterval = setInterval(function() {
+            timerRemaining--;
+            updateTimerDisplay();
+
+            if (timerRemaining <= 0) {
+                clearAllTimers();
+                if (!isPaused) advanceQueue();
+            }
+        }, 1000);
+    }
+
+    function clearAllTimers() {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+        timerRemaining = 0;
+        updateTimerDisplay();
+    }
+
+    function updateTimerDisplay() {
+        const el = document.getElementById('timer-display');
+        if (timerRemaining <= 0) {
+            el.textContent = '';
+            return;
+        }
+        const m = Math.floor(timerRemaining / 60);
+        const s = timerRemaining % 60;
+        el.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+    }
+
+    /* ╭──────────────────────────── ♱ · NOW PLAYING ANNOUNCE · ♱ ─╮ */
+
+    let lastAnnouncedId = null;
+
+    function announceNowPlaying(song) {
+        // Only the DJ browser fires the webhook — otherwise every Host
+        // browser would post a duplicate "Now Playing" message for every
+        // song. The DJ is whichever browser is screen-sharing audio, so
+        // pinning the announce to that role keeps Discord clean.
+        if (mode !== 'DJ') return;
+
+        // Don't announce the same song twice (also blocks the redundant
+        // re-announce that fires when reconciliation re-runs playSong()
+        // for the song we just loaded).
+        if (song.id === lastAnnouncedId) return;
+        lastAnnouncedId = song.id;
+
+        fetch('/api/announce', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: song.title || '',
+                url: song.url,
+                platform: song.platform
+            })
+        }).then(function(r) {
+            if (!r.ok) console.log('[DJ] Announce failed:', r.status);
+        }).catch(function(e) {
+            console.log('[DJ] Announce error:', e);
+        });
+    }
+
+    /* ╭──────────────────────────────── ♱ · PLAYBACK CORE · ♱ ─╮ */
+
+    function playSong(index) {
+        console.log('[DJ] playSong(' + index + ') queueLen:', queue.length, 'mode:', mode);
+        if (index >= queue.length && queue.length > 0) {
+            // Loop back to the start of the queue
+            console.log('[DJ] End of queue, looping back to start');
+            index = 0;
+        }
+        if (index < 0 || index >= queue.length) {
+            console.log('[DJ] index out of range, showing waiting screen');
+            showWaitingForMore();
+            return;
+        }
+
+        currentIndex = index;
+        isWaiting = false;
+
+        const song = queue[index];
+        // Track the link_id so pollQueue's reconciliation can tell whether
+        // a server state change came from us or another browser.
+        currentLinkId = song.id;
+
+        updateNowPlaying(song, index);
+        renderQueue();
+        // Single rendering entry point for both modes — also called by
+        // applyMode() when the user toggles DJ ⇄ Host mid-song so the
+        // player area swaps without missing a beat.
+        renderPlayerForCurrentMode(song);
+
+        announceNowPlaying(song);
+
+        // Mark song as played in DB (enables voting + updates now_playing
+        // so the OTHER browser picks up this song on its next poll).
+        fetch(queueApi('/' + song.id + '/played'), { method: 'POST' }).catch(function(){});
+    }
+
+    /* ╭───────────────────── ♱ · PLAYER AREA TEARDOWN · ♱ ─╮
+     *
+     * Stops the song that's currently playing in the player area BEFORE
+     * the next song's HTML is injected. This used to be a one-liner
+     * (`ytPlayer.destroy()`) which handled YouTube cleanly, but did
+     * nothing about <audio> / <video> elements.
+     *
+     * When `container.innerHTML = '<new html>'` runs, the old audio/
+     * video elements are removed from the DOM — but most browsers keep
+     * the JS objects alive (event listeners hold references) and *keep
+     * playing in the background*. Their `ended` and near-end
+     * `timeupdate` listeners then fire and call `advanceQueue()`, which
+     * advances the queue AGAIN — sometimes seconds after we already
+     * advanced. With co-host reconciliation cutting songs mid-playback
+     * across two browsers, the rogue advances cascade and the queue
+     * appears to "jump around possessed."
+     *
+     * Pausing + clearing src + calling .load() forces each element to
+     * fully release its source, stops playback, and prevents further
+     * `ended` / `timeupdate` events from firing.
+     */
+    function teardownPlayerArea() {
+        clearAllTimers();
+        if (ytPlayer && typeof ytPlayer.destroy === 'function') {
+            try { ytPlayer.destroy(); } catch(e) {}
+            ytPlayer = null;
+        }
+        const container = document.getElementById('player-container');
+        if (!container) return;
+        container.querySelectorAll('audio, video').forEach(function(el) {
+            try {
+                el.pause();
+                el.removeAttribute('src');
+                el.load();   // forces source release so timeupdate stops
+            } catch(e) {}
+        });
+    }
+
+    function loadSong(song) {
+        const url = song.url;
+        const platform = song.platform;
+
+        // Stop the previous song (audio + video + YT + auto-advance timer)
+        // before any of the platform-specific load* functions inject new
+        // HTML into the container. See teardownPlayerArea() comment for why.
+        teardownPlayerArea();
+
+        if (platform === 'YouTube') {
+            const vid = extractYouTubeId(url);
+            if (vid) { loadYouTube(vid, url); return; }
+        }
+
+        if (platform === 'SoundCloud') {
+            loadSoundCloud(url);
+            return;
+        }
+
+        if (platform === 'Producer.ai') {
+            loadProducerAi(url);
+            return;
+        }
+
+        if (platform === 'Suno') {
+            const sid = extractSunoId(url);
+            if (sid) { loadSuno(sid, url); return; }
+        }
+
+        if (platform === 'Upload') {
+            loadUploadedVideo(url);
+            return;
+        }
+
+        if (platform === 'Audio') {
+            loadDirectAudio(url);
+            return;
+        }
+
+        // Everything else: try loading in iframe
+        loadGenericEmbed(url);
+    }
+
+    function advanceQueue() {
+        console.log('[DJ] advanceQueue called. isPaused:', isPaused, 'currentIndex:', currentIndex, 'queueLen:', queue.length, 'mode:', mode);
+        if (isPaused) return;
+        // In Host mode the DJ owns advancement. The Host's (muted) player
+        // hitting the end of a track must NOT advance the queue itself —
+        // otherwise both browsers POST a song change and they fight. The
+        // Host follows the DJ's now_playing pointer via poll reconciliation.
+        if (mode === 'Host') return;
+        playSong(currentIndex + 1);
+    }
+
+    function startSession() {
+        sessionStarted = true;
+        document.getElementById('start-overlay').classList.remove('visible');
+        if (queue.length > 0 && currentIndex === -1) {
+            // Join at the server's current song if it's still in the queue —
+            // covers a co-host joining mid-party and a DJ refreshing the
+            // page (resume where the party is, don't restart at the top).
+            // Falls back to the top of the queue for a genuinely fresh start
+            // (e.g. now_playing points at a song that was already cleared).
+            var startIdx = 0;
+            if (lastServerLinkId) {
+                var idx = queue.findIndex(function(s) { return s.id === lastServerLinkId; });
+                if (idx >= 0) startIdx = idx;
+            }
+            playSong(startIdx);
+        }
+    }
+
+    function skipPrev() {
+        if (!sessionStarted) startSession();
+        if (mode === 'DJ') {
+            // DJ knows the queue locally — skip backward and let playSong()
+            // POST /played, which syncs now_playing for the Host.
+            if (currentIndex > 0) playSong(currentIndex - 1);
+        } else {
+            // Host doesn't drive playback locally — ask the server to step
+            // the pointer back and let the next poll reconcile the UI.
+            fetch('/api/dj/back' + guildSuffix, { method: 'POST' })
+                .catch(function(e) { console.log('[DJ] /api/dj/back failed:', e); });
+        }
+    }
+
+    function skipNext() {
+        // Manual skip always works, even when paused
+        if (!sessionStarted) startSession();
+        if (mode === 'DJ') {
+            playSong(currentIndex + 1);
+        } else {
+            fetch('/api/dj/next' + guildSuffix, { method: 'POST' })
+                .catch(function(e) { console.log('[DJ] /api/dj/next failed:', e); });
+        }
+    }
+
+    function showWaitingForMore() {
+        isWaiting = true;
+
+        // Use the unified teardown so any lingering <audio>/<video> from
+        // the previous song actually stops playing — innerHTML replacement
+        // alone leaves them running in the background on most browsers.
+        teardownPlayerArea();
+
+        const container = document.getElementById('player-container');
+        container.innerHTML =
+            '<div id="waiting-screen">' +
+            '<div class="icon">&#9835;</div>' +
+            '<div class="msg">Waiting for more links...</div>' +
+            '</div>';
+
+        const label = document.getElementById('np-label');
+        label.textContent = 'WAITING';
+        label.classList.add('waiting');
+        document.getElementById('np-info').textContent = 'Queue complete \u2014 drop more links!';
+        document.getElementById('np-counter').textContent =
+            currentIndex >= 0 ? (currentIndex + 1) + ' played' : '';
+
+        document.title = '\u266B DJ Booth';
+    }
+
+    function clearPlayedSongs() {
+        if (currentIndex <= 0) return; // nothing played yet, or only one song playing
+
+        const playedSongs = queue.slice(0, currentIndex);
+
+        // Delete each played song from DB
+        Promise.all(playedSongs.map(function(song) {
+            return fetch(queueApi('/' + song.id), { method: 'DELETE' }).catch(function(){});
+        })).then(function() {
+            playedSongs.forEach(function(song) {
+                deletedIds.add(song.id);       // host removed it — don't resurrect on poll
+                knownIds.delete(song.id);
+            });
+            queue = queue.slice(currentIndex); // keep current + future songs
+            currentIndex = 0;                  // current song is now first
+            renderQueue();
+        });
+    }
+
+    function clearAllSongs() {
+        if (!confirm('Clear all songs from the queue?')) return;
+
+        // Host action — clear the dashboard now and tell the server best-effort.
+        // Mark every cleared id deleted so the poll can't bring them back.
+        queue.forEach(function(s) { if (s.id !== 'outro') deletedIds.add(s.id); });
+        fetch(queueApi('/clear'), { method: 'DELETE' }).catch(function() {});
+        queue = [];
+        knownIds.clear();
+        currentIndex = -1;
+        customOrder = false;
+        showWaitingForMore();
+        renderQueue();
+    }
+
+    /* ╭──────────────────────────── ♱ · MANUAL ADD TRACK · ♱ ─╮ */
+
+    function addTrackManual() {
+        const input = document.getElementById('add-track-input');
+        const row   = document.getElementById('add-track-row');
+        if (!input || !row) return;
+
+        const url = input.value.trim();
+        if (!url) return;
+
+        // Quick client-side validation — server validates more thoroughly
+        // but bouncing obvious garbage here saves a round-trip.
+        if (!/^https?:\/\//i.test(url)) {
+            flashAddTrackError(input, row, 'URL must start with http:// or https://');
+            return;
+        }
+
+        // Disable the button briefly so a rapid double-click doesn't
+        // create duplicate rows.
+        const btn = row.querySelector('.add-track-btn');
+        if (btn) btn.disabled = true;
+
+        fetch(queueApi('/add'), {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ url: url })
+        })
+        .then(function(r) {
+            return r.json().then(function(data) {
+                return { ok: r.ok, data: data || {} };
+            });
+        })
+        .then(function(result) {
+            if (btn) btn.disabled = false;
+            if (!result.ok) {
+                flashAddTrackError(input, row,
+                    result.data.error || 'Could not add this URL');
+                return;
+            }
+            // Success — clear the input. The next pollQueue (≤2s) picks
+            // up the new song and renders it into the sidebar.
+            input.value = '';
+            input.title = '';
+        })
+        .catch(function(e) {
+            if (btn) btn.disabled = false;
+            console.log('[DJ] Add track failed:', e);
+            flashAddTrackError(input, row, 'Network error — try again');
+        });
+    }
+
+    function flashAddTrackError(input, row, message) {
+        row.classList.add('error');
+        input.title = message;
+        setTimeout(function() { row.classList.remove('error'); }, 600);
+    }
+
+    /* ╭──────────────────────────────── ♱ · UI UPDATES · ♱ ─╮ */
+
+    function updateNowPlaying(song, index) {
+        const label = document.getElementById('np-label');
+        label.textContent = 'NOW PLAYING';
+        label.classList.remove('waiting');
+
+        let npHtml = '';
+        if (song.emoji) npHtml += '<span style="margin-right:8px;font-size:20px;">' + song.emoji + '</span>';
+        npHtml += '<span class="username">' + escapeHtml(song.username) + '</span>';
+        if (song.title) {
+            npHtml += '<span class="song-title"> \u2014 ' + escapeHtml(song.title) + '</span>';
+        }
+        npHtml += '<span class="platform-tag">' + song.platform + '</span>';
+        document.getElementById('np-info').innerHTML = npHtml;
+
+        document.getElementById('np-counter').textContent =
+            (index + 1) + ' / ' + queue.length;
+
+        const tabTitle = song.title
+            ? song.title + ' \u2014 ' + song.username
+            : song.username;
+        document.title = '\u266B ' + tabTitle + ' \u2014 DJ Booth';
+    }
+
+    function renderQueue() {
+        // Don't re-render while a rename input is active
+        if (renameActive) return;
+
+        const list = document.getElementById('queue-list');
+        const countEl = document.getElementById('queue-count');
+
+        if (queue.length === 0) {
+            list.innerHTML = '<div class="q-empty">No songs yet</div>';
+            countEl.textContent = '';
+            return;
+        }
+
+        countEl.textContent = queue.length + ' songs';
+
+        let html = '';
+        for (let i = 0; i < queue.length; i++) {
+            const song = queue[i];
+            let cls = 'q-item';
+            let status = '';
+
+            if (i < currentIndex) {
+                cls += ' played';
+                status = '\u2713';
+            } else if (i === currentIndex) {
+                cls += ' current';
+                status = '\u25B6';
+            }
+
+            if (song._fresh) {
+                cls += ' fresh';
+            }
+
+            html +=
+                '<div class="' + cls + '" data-index="' + i + '" ' +
+                'draggable="true" ' +
+                'onclick="jumpTo(' + i + ')" ' +
+                'ondragstart="qDragStart(event,' + i + ')" ' +
+                'ondragover="qDragOver(event)" ' +
+                'ondragenter="qDragEnter(event)" ' +
+                'ondragleave="qDragLeave(event)" ' +
+                'ondrop="qDrop(event,' + i + ')">' +
+                '<span class="q-status">' + status + '</span>' +
+                '<span class="q-num">' + (song.emoji || '') + '</span>' +
+                '<span class="q-user">' + escapeHtml(song.username) + '</span>' +
+                '<span class="q-plat">' + song.platform + '</span>' +
+                '<span class="q-edit" onclick="event.stopPropagation();renameSong(' + i + ')" title="Rename">&#9998;</span>' +
+                '<span class="q-delete" onclick="event.stopPropagation();deleteSong(' + i + ')" title="Remove">&times;</span>' +
+                '</div>';
+        }
+
+        list.innerHTML = html;
+
+        // Scroll newest fresh item into view when songs arrive, otherwise track current
+        const freshEls = list.querySelectorAll('.q-item.fresh');
+        const targetEl = freshEls.length > 0
+            ? freshEls[freshEls.length - 1]
+            : list.querySelector('.q-item.current');
+        if (targetEl) {
+            targetEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    var renameActive = false;
+
+    function renameSong(index) {
+        const song = queue[index];
+        if (!song) return;
+
+        const row = document.querySelector('.q-item[data-index="' + index + '"]');
+        if (!row) return;
+        const el = row.querySelector('.q-user');
+        if (!el) return;
+
+        renameActive = true;
+
+        // Remove the onclick from the row so clicks don't trigger jumpTo
+        row.removeAttribute('onclick');
+
+        const oldName = song.username;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = oldName;
+        input.style.cssText = 'width:120px;background:var(--bg-deep);color:var(--text);' +
+            'border:1px solid var(--accent);border-radius:3px;padding:2px 4px;' +
+            'font-size:13px;font-family:inherit;outline:none;';
+
+        // Stop all events from bubbling up
+        input.addEventListener('click', function(e) { e.stopPropagation(); });
+        input.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+
+        el.textContent = '';
+        el.appendChild(input);
+
+        // Small delay to avoid the click that opened us from stealing focus
+        setTimeout(function() {
+            input.focus();
+            input.select();
+        }, 50);
+
+        let saved = false;
+        function save() {
+            if (saved) return;
+            saved = true;
+            renameActive = false;
+            const newName = input.value.trim();
+            if (newName && newName !== oldName) {
+                fetch(queueApi('/' + song.id + '/rename'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: newName })
+                }).then(function(r) {
+                    if (r.ok) {
+                        song.username = newName;
+                        renderQueue();
+                    }
+                });
+            } else {
+                renderQueue();
+            }
+        }
+
+        input.addEventListener('keydown', function(e) {
+            e.stopPropagation();
+            if (e.key === 'Enter') { e.preventDefault(); save(); }
+            if (e.key === 'Escape') { renameActive = false; renderQueue(); }
+        });
+        input.addEventListener('blur', function() {
+            // Small delay so clicking elsewhere doesn't race
+            setTimeout(save, 100);
+        });
+    }
+
+    /* ╭────────────────────────── ♱ · QUEUE REORDER · ♱ ─╮ */
+
+    let dragIdx = null;
+
+    function jumpTo(index) {
+        if (!sessionStarted) startSession();
+        playSong(index);
+    }
+
+    function deleteSong(index) {
+        const song = queue[index];
+        if (!song) return;
+
+        // The outro is a client-side pin, not a server row. Deleting it just
+        // hides it for this session — it comes back on refresh / new session.
+        if (song.id === 'outro') {
+            outroDeleted = true;
+            queue.splice(index, 1);
+            if (index < currentIndex) { currentIndex--; }
+            renderQueue();
+            return;
+        }
+
+        // Remove from the dashboard immediately (the host's intent wins) and
+        // tell the server best-effort. `deletedIds` keeps the next poll from
+        // resurrecting it; this also works when the row is already gone from
+        // the DB (e.g. after !stoptracking) — the 404 is harmless.
+        deletedIds.add(song.id);
+        fetch(queueApi('/' + song.id), { method: 'DELETE' }).catch(function() {});
+
+        queue.splice(index, 1);
+        knownIds.delete(song.id);
+
+        if (index < currentIndex) {
+            currentIndex--;
+        } else if (index === currentIndex) {
+            // Deleted the currently playing song — play the next one
+            if (queue.length > 0 && currentIndex < queue.length) {
+                playSong(currentIndex);
+            } else if (queue.length > 0) {
+                playSong(queue.length - 1);
+            } else {
+                currentIndex = -1;
+                showWaitingForMore();
+            }
+            renderQueue();
+            return;
+        }
+
+        renderQueue();
+    }
+
+    function qDragStart(e, index) {
+        dragIdx = index;
+        e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function qDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    }
+
+    function qDragEnter(e) {
+        e.preventDefault();
+        const item = e.target.closest('.q-item');
+        if (item) item.classList.add('drag-over');
+    }
+
+    function qDragLeave(e) {
+        const item = e.target.closest('.q-item');
+        if (item) item.classList.remove('drag-over');
+    }
+
+    function qDrop(e, targetIdx) {
+        e.preventDefault();
+        const item = e.target.closest('.q-item');
+        if (item) item.classList.remove('drag-over');
+        if (dragIdx === null || dragIdx === targetIdx) return;
+
+        // Move the song in the queue array
+        const moved = queue.splice(dragIdx, 1)[0];
+        queue.splice(targetIdx, 0, moved);
+
+        // Keep currentIndex pointing at the same song
+        if (dragIdx === currentIndex) {
+            currentIndex = targetIdx;
+        } else if (dragIdx < currentIndex && targetIdx >= currentIndex) {
+            currentIndex--;
+        } else if (dragIdx > currentIndex && targetIdx <= currentIndex) {
+            currentIndex++;
+        }
+
+        dragIdx = null;
+        customOrder = true;
+        renderQueue();
+
+        // Persist the new order to the server so the OTHER browser sees
+        // the same queue on its next poll. Fire-and-forget — the local
+        // queue array is already in the new order, so even if the POST
+        // is in flight, the user's view is correct immediately.
+        const orderedIds = queue.map(function(s) { return s.id; });
+        fetch(queueApi('/reorder'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ordered_link_ids: orderedIds })
+        }).catch(function(e) { console.log('[DJ] reorder POST failed:', e); });
+    }
+
+    /* ╭──────────────────────────────── ♱ · CONTROLS · ♱ ─╮ */
+
+    function togglePause() {
+        isPaused = !isPaused;
+        const btn = document.getElementById('btn-pause');
+        if (isPaused) {
+            btn.textContent = 'AUTO OFF';
+            btn.classList.add('paused');
+        } else {
+            btn.textContent = '\u25CF AUTO ON';
+            btn.classList.remove('paused');
+            if (!sessionStarted) startSession();
+
+            // If current song already ended (timer hit 0), advance now
+            if (timerRemaining <= 0 && timerInterval === null && !isWaiting) {
+                advanceQueue();
+            }
+        }
+
+        // Also pause/resume the actual audio so the toggle behaves like a
+        // real pause button \u2014 previous behavior only flipped auto-advance
+        // which surprised co-hosts (clicked PAUSE, music kept playing).
+        syncAudioPlayState(isPaused);
+
+        // Tell the server so the other browser picks up the change on its
+        // next poll. Explicit value (not "flip") so two browsers racing
+        // this can't deadlock on opposite states.
+        // Solo (No-Server) mode is single-browser with no pause backend, so
+        // pause stays purely LOCAL — skip the network call entirely.
+        if (!isSolo) {
+            fetch('/api/dj/pause' + guildSuffix, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paused: isPaused })
+            }).catch(function() {});
+        }
+    }
+
+    /* Pause or resume every audio/video element + the YouTube player.
+     * Used by both togglePause() and applyRemotePauseState() so local
+     * and remote pause behave identically. */
+    function syncAudioPlayState(paused) {
+        const els = document.querySelectorAll('audio, video');
+        els.forEach(function(el) {
+            if (paused) { try { el.pause(); } catch(e) {} }
+            else        { try { el.play();  } catch(e) {} }
+        });
+        if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
+            try {
+                if (paused) ytPlayer.pauseVideo();
+                else        ytPlayer.playVideo();
+            } catch(e) {}
+        }
+    }
+
+    /* ╭──────────────────────────── ♱ · MUTE CONTROL · ♱ ─╮ */
+
+    function updateMuteButton() {
+        // Sync the speaker button's icon + style to the current isMuted
+        // state. Split out of toggleMute so applyMode() can refresh the
+        // button when it changes the default mute for a mode switch.
+        const btn = document.getElementById('btn-mute');
+        if (!btn) return;
+        if (isMuted) {
+            btn.innerHTML = '&#128264;';
+            btn.classList.add('muted');
+        } else {
+            btn.innerHTML = '&#128266;';
+            btn.classList.remove('muted');
+        }
+    }
+
+    function toggleMute() {
+        isMuted = !isMuted;
+        updateMuteButton();
+        applyMute();
+    }
+
+    function applyMute() {
+        // Mute is now a single source of truth: the isMuted flag. Host
+        // mode no longer force-mutes here — instead applyMode() sets
+        // isMuted=true as the Host default, which the host can override
+        // with the speaker button to monitor the party locally.
+        const effectiveMute = isMuted;
+        // Mute/unmute all audio and video elements on the page
+        const mediaEls = document.querySelectorAll('audio, video');
+        mediaEls.forEach(function(el) { el.muted = effectiveMute; });
+
+        // YouTube uses its own API
+        if (ytPlayer && typeof ytPlayer.mute === 'function') {
+            if (effectiveMute) { ytPlayer.mute(); }
+            else               { ytPlayer.unMute(); }
+        }
+
+        // SoundCloud uses widget API — set volume to 0 or 100
+        const scFrame = document.getElementById('sc-frame');
+        if (scFrame) {
+            try {
+                const widget = SC.Widget(scFrame);
+                widget.setVolume(effectiveMute ? 0 : 100);
+            } catch(e) {}
+        }
+
+        // Keep the Host badge text in step with the mute state (the badge
+        // itself is only visible in Host mode, via body.booth-host-mode).
+        const hb = document.getElementById('host-badge');
+        if (hb) {
+            hb.textContent = isMuted
+                ? '📋 HOST — controls sync to the DJ · audio muted (click 🔊 to monitor)'
+                : '📋 HOST — controls sync to the DJ · monitoring audio locally';
+        }
+    }
+
+    /* Mute-enforcer — when this browser is muted (the Host default), any
+     * freshly-injected <audio>/<video> must be silenced the instant it's
+     * added to the DOM. Without this there's a brief blip of sound on each
+     * song change in Host mode: the player builds with `autoplay` and
+     * starts before applyMute()'s timed pass runs. A MutationObserver
+     * catches every insertion, including the async Suno resolve path.
+     * (SoundCloud + YouTube are iframes, handled by applyMute / playerVars
+     * instead.) */
+    (function installMuteEnforcer() {
+        var area = document.getElementById('player-area');
+        if (!area || typeof MutationObserver === 'undefined') return;
+        function silence(node) {
+            if (!node || node.nodeType !== 1) return;
+            if (node.tagName === 'AUDIO' || node.tagName === 'VIDEO') {
+                node.muted = true;
+            }
+            if (node.querySelectorAll) {
+                node.querySelectorAll('audio, video').forEach(function(el) {
+                    el.muted = true;
+                });
+            }
+        }
+        new MutationObserver(function(mutations) {
+            if (!isMuted) return;   // only enforce while we're in muted state
+            mutations.forEach(function(mu) {
+                mu.addedNodes.forEach(silence);
+            });
+        }).observe(area, { childList: true, subtree: true });
+    })();
+
+    /* ╭──────────────────────────── ♱ · DASHBOARD NOTES · ♱ ─╮ */
+
+    let currentNote = '';
+
+    function sendNote() {
+        const input = document.getElementById('note-input');
+        const text = input.value.trim();
+        if (!text) return;
+
+        fetch('/api/note', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text, guild_id: guildParam || 0 })
+        }).then(function() {
+            input.value = '';
+            showNoteBanner(text);
+        });
+    }
+
+    function clearNote() {
+        document.getElementById('note-input').value = '';
+        fetch('/api/note', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: '', guild_id: guildParam || 0 })
+        }).then(function() {
+            hideNoteBanner();
+        });
+    }
+
+    function showNoteBanner(text) {
+        currentNote = text;
+        const banner = document.getElementById('note-banner');
+        document.getElementById('note-text').textContent = text;
+        banner.classList.add('visible');
+        showScreensaver();
+    }
+
+    function hideNoteBanner() {
+        currentNote = '';
+        document.getElementById('note-banner').classList.remove('visible');
+        hideScreensaver();
+    }
+
+    /* ╭───────────────────────── ♱ · LYRICS VISIBILITY · ♱ ─╮ */
+    // Host can hide the lyric panel when they don't want to scroll
+    // through it (so listeners don't feel slighted by static lyrics
+    // just sitting there). Preference persists across reloads via
+    // localStorage so they don't have to re-toggle every session.
+    function toggleLyricsVisibility() {
+        const hidden = !document.body.classList.contains('lyrics-hidden');
+        document.body.classList.toggle('lyrics-hidden', hidden);
+        try { localStorage.setItem('booth.lyrics_hidden', hidden ? '1' : '0'); }
+        catch (e) { /* localStorage might be disabled */ }
+        updateLyricsToggleLabel();
+    }
+
+    function updateLyricsToggleLabel() {
+        const label = document.getElementById('lyrics-toggle-label');
+        if (!label) return;
+        label.textContent = document.body.classList.contains('lyrics-hidden')
+            ? 'LYRICS OFF'
+            : 'LYRICS';
+    }
+
+    // Restore the saved preference on page load.
+    //
+    // New default: lyrics START HIDDEN. The host has to opt in by
+    // clicking the LYRICS button, which then persists the choice for
+    // future sessions. We treat localStorage value '0' as "explicitly
+    // turned on" — every other value (null, '1', anything else) keeps
+    // them hidden so the page opens in a clean, non-scrolling state.
+    (function initLyricsVisibility() {
+        let shouldShow = false;
+        try {
+            shouldShow = localStorage.getItem('booth.lyrics_hidden') === '0';
+        } catch (e) { /* localStorage might be disabled */ }
+        if (!shouldShow) {
+            document.body.classList.add('lyrics-hidden');
+        }
+        updateLyricsToggleLabel();
+    })();
+
+    /* ╭───────────────────── ♱ · HELP / QUICK REFERENCE · ♱ ─╮ */
+    // Opens the LP quick-reference card. Toggled by the ? button in the
+    // now-playing bar, closed by the × button, an Escape press, or
+    // clicking the dark backdrop outside the card.
+    function toggleHelpPanel() {
+        const panel = document.getElementById('help-panel');
+        if (!panel) return;
+        panel.hidden = !panel.hidden;
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const panel = document.getElementById('help-panel');
+            if (panel && !panel.hidden) panel.hidden = true;
+        }
+    });
+
+    // Click outside the inner card → close
+    document.addEventListener('click', function(e) {
+        const panel = document.getElementById('help-panel');
+        if (!panel || panel.hidden) return;
+        // Close only if the click landed on the dark backdrop itself,
+        // not on the inner content or the ? button that opened it.
+        if (e.target === panel) panel.hidden = true;
+    });
+
+    /* ╭───────────────────────── ♱ · AWAY-MODE SCREENSAVER · ♱ ─╮ */
+    // Plays a looping background video whenever the host posts a note.
+    // Audio for the currently-playing song keeps going underneath — this
+    // is purely visual. The host can cycle through other videos with the
+    // arrow buttons that overlay on top.
+    //
+    // The video list is auto-discovered from /api/booth/screensavers —
+    // any `screensaver_*.mp4` file dropped in /static/assets/ gets
+    // picked up automatically on page load. No code edits needed.
+    let SCREENSAVER_VIDEOS = [];
+
+    (async function loadScreensaverList() {
+        try {
+            const resp = await fetch('/api/booth/screensavers',
+                                     { cache: 'no-store' });
+            if (!resp.ok) return;
+            const list = await resp.json();
+            if (Array.isArray(list) && list.length > 0) {
+                SCREENSAVER_VIDEOS = list;
+            }
+        } catch (e) {
+            console.debug('[booth] screensaver list fetch failed:', e);
+        }
+    })();
+
+    // Track which video is currently loaded so the arrows can advance
+    // from the right starting point. -1 means "not yet picked".
+    let screensaverIdx = -1;
+
+    function setScreensaverByIndex(idx) {
+        const vid = document.getElementById('screensaver-video');
+        if (!vid || SCREENSAVER_VIDEOS.length === 0) return;
+        // Wrap around at both ends so the cycle is endless
+        const wrapped = ((idx % SCREENSAVER_VIDEOS.length) + SCREENSAVER_VIDEOS.length)
+                        % SCREENSAVER_VIDEOS.length;
+        screensaverIdx = wrapped;
+        const src = SCREENSAVER_VIDEOS[wrapped];
+        if (vid.getAttribute('src') !== src) {
+            vid.setAttribute('src', src);
+            vid.load();
+        }
+        // Only call play() if the screensaver is currently visible —
+        // we don't want a hidden video burning bandwidth on prev/next
+        // calls before the host actually goes into away mode.
+        if (vid.classList.contains('visible')) {
+            const p = vid.play();
+            if (p && typeof p.catch === 'function') p.catch(function(){});
+        }
+    }
+
+    function nextScreensaver() {
+        setScreensaverByIndex(screensaverIdx + 1);
+    }
+
+    function prevScreensaver() {
+        setScreensaverByIndex(screensaverIdx - 1);
+    }
+
+    function showScreensaver() {
+        const vid = document.getElementById('screensaver-video');
+        const playerArea = document.getElementById('player-area');
+        if (!vid) return;
+        // First time entering away mode: pick a random starting video.
+        // After that, keep whatever the host last cycled to.
+        if (screensaverIdx === -1) {
+            screensaverIdx = Math.floor(Math.random() * SCREENSAVER_VIDEOS.length);
+            setScreensaverByIndex(screensaverIdx);
+        }
+        vid.classList.add('visible');
+        if (playerArea) playerArea.classList.add('away-mode');
+        const awayBtn = document.getElementById('away-btn');
+        if (awayBtn) awayBtn.classList.add('is-active');
+        // .play() returns a promise; ignore rejection (file missing,
+        // autoplay blocked, etc.) so a failed video doesn't break the UI.
+        const p = vid.play();
+        if (p && typeof p.catch === 'function') p.catch(function(){});
+    }
+
+    function hideScreensaver() {
+        const vid = document.getElementById('screensaver-video');
+        const playerArea = document.getElementById('player-area');
+        if (!vid) return;
+        vid.classList.remove('visible');
+        if (playerArea) playerArea.classList.remove('away-mode');
+        const awayBtn = document.getElementById('away-btn');
+        if (awayBtn) awayBtn.classList.remove('is-active');
+        try { vid.pause(); } catch (e) {}
+    }
+
+    // AWAY button — toggles the screensaver overlay WITHOUT posting a
+    // note. Lets the host throw an aesthetic backdrop on screen for
+    // ambient breaks where they don't need a "BRB" message.
+    function toggleAwayMode() {
+        const vid = document.getElementById('screensaver-video');
+        if (!vid) return;
+        if (vid.classList.contains('visible')) {
+            hideScreensaver();
+        } else {
+            showScreensaver();
+        }
+    }
+
+    async function pollNote() {
+        try {
+            const noteUrl = guildParam
+                ? '/api/note?guild=' + guildParam
+                : '/api/note';
+            const resp = await fetch(noteUrl);
+            if (!resp.ok) return;
+            const data = await resp.json();
+
+            if (data.note && data.note !== currentNote) {
+                showNoteBanner(data.note);
+            } else if (!data.note && currentNote) {
+                hideNoteBanner();
+            }
+        } catch(e) {}
+    }
+
+    /* ╭───────────────────────── ♱ · MODE TOGGLE (DJ / HOST) · ♱ ─╮ */
+
+    function modeStorageKey() {
+        // Per-guild key so a host can pick a different role for each
+        // listening party they manage from the same browser.
+        return 'mode_' + (guildParam || '0');
+    }
+
+    function applyMode() {
+        // Update the toggle button's look + apply audio side-effects.
+        const btn = document.getElementById('mode-toggle');
+        if (!btn) return;
+        if (mode === 'Host') {
+            btn.textContent = '📋 HOST';
+            btn.classList.add('host');
+        } else {
+            btn.textContent = '🎧 DJ';
+            btn.classList.remove('host');
+        }
+
+        // Default the mute state to match the mode: Host starts MUTED (the
+        // DJ's screen-share carries the audio, so a second stream would
+        // echo), DJ starts UNMUTED. This is only a DEFAULT — the host can
+        // click the speaker button afterward to monitor locally, and that
+        // choice sticks until the next mode switch.
+        isMuted = (mode === 'Host');
+        updateMuteButton();
+
+        // Body class drives the "DJ is the source" badge (CSS-shown only
+        // in host mode).
+        document.body.classList.toggle('booth-host-mode', mode === 'Host');
+
+        applyMute();
+        // If a song is already loaded, re-render so the audio/mute change
+        // takes effect immediately instead of on the next song.
+        if (currentIndex >= 0 && queue[currentIndex]) {
+            renderPlayerForCurrentMode(queue[currentIndex]);
+        }
+    }
+
+    function toggleMode() {
+        mode = (mode === 'DJ') ? 'Host' : 'DJ';
+        try { localStorage.setItem(modeStorageKey(), mode); } catch(e) {}
+        applyMode();
+    }
+
+    // Called by initial-setup IIFE at the bottom of this script, after
+    // the DOM and guildParam are both available.
+    function loadStoredMode() {
+        try {
+            const stored = localStorage.getItem(modeStorageKey());
+            if (stored === 'Host' || stored === 'DJ') {
+                mode = stored;
+            }
+        } catch(e) {}
+        applyMode();
+    }
+
+    /* Unified entry point for filling the player area for the current
+     * song. BOTH modes load the real platform player so the familiar
+     * transport / seek bar ("sound bar") is present for the DJ and the
+     * Host alike. The only difference is audio output: Host mode starts
+     * muted (the DJ's screen-share is what the party hears), but the Host
+     * can unmute to monitor locally via the speaker button. See applyMode
+     * + applyMute for the mute defaulting.
+     */
+    function renderPlayerForCurrentMode(song) {
+        loadSong(song);
+        // Re-apply mute after the new player element appears (500ms gives
+        // YT.Player and the SoundCloud widget time to attach).
+        setTimeout(applyMute, 500);
+    }
+
+    /* ╭──────────────────────────────── ♱ · POLLING · ♱ ─╮ */
+
+    async function pollQueue() {
+        try {
+            const resp = await fetch(queueUrl);
+            if (!resp.ok) return;
+            const payload = await resp.json();
+            if (payload && payload.error) return;
+
+            // New /api/queue shape (for co-host sync):
+            //     { now_playing_link_id, is_paused, songs: [...] }
+            // Legacy bare-array shape is still tolerated so a stale CDN
+            // cache or a downgraded server doesn't crash the page.
+            const songs        = Array.isArray(payload) ? payload : (payload.songs || []);
+            const serverLinkId = (payload && payload.now_playing_link_id) || null;
+            const serverPaused = !!(payload && payload.is_paused);
+
+            const prevLength = queue.length;
+
+            // Build a lookup of fresh server data by ID
+            const serverMap = {};
+            songs.forEach(function(song) { serverMap[song.id] = song; });
+
+            // Mark new arrivals
+            songs.forEach(function(song) {
+                if (!knownIds.has(song.id)) {
+                    knownIds.add(song.id);
+                    song._fresh = true;
+                    setTimeout(function() {
+                        song._fresh = false;
+                        renderQueue();
+                    }, 5000);
+                }
+            });
+
+            // Retain-based merge: keep songs the host already has even if the
+            // server stops returning them (e.g. !stoptracking clears the DB).
+            // The poll only ADDS new songs and refreshes existing ones — the
+            // host's delete (or a refresh / new session) is the only thing that
+            // removes a song from the dashboard. `deletedIds` stops a song the
+            // host just deleted from being resurrected by a poll that still
+            // sees it in the DB.
+            const kept = queue.filter(function(s) { return s.id !== 'outro'; });
+            const keptIdx = {};
+            kept.forEach(function(s, i) { keptIdx[s.id] = i; });
+            songs.forEach(function(song) {
+                if (deletedIds.has(song.id)) return;
+                if (keptIdx[song.id] !== undefined) {
+                    song._fresh = kept[keptIdx[song.id]]._fresh;
+                    kept[keptIdx[song.id]] = song;      // refresh in place, keep order
+                } else {
+                    kept.push(song);                    // new arrival appends
+                }
+            });
+            queue = kept;
+
+            appendOutro();   // keep the outro pinned to the very end
+
+            renderQueue();
+
+            // Refresh the context header's song count only when it changed,
+            // so the banner stays fresh without flickering every poll.
+            if (queue.length !== prevLength) {
+                try { refreshContextHeader(); } catch (e) { /* never break the poll */ }
+            }
+
+            // Pre-resolve Suno URLs in background so they're instant on play
+            songs.forEach(function(song) {
+                if (song.platform === 'Suno') preResolveSuno(song.url);
+            });
+
+            /* ── CO-HOST SYNC RECONCILIATION ──
+             *
+             * We only react when the server's state CHANGED since the
+             * last poll AND differs from our local state. That two-step
+             * guard means our own optimistic update (which races our
+             * still-in-flight POST) doesn't cause a phantom reload.
+             *
+             *   server changed + matches local  → we did it, caught up. No-op.
+             *   server changed + differs local  → other browser did it. React.
+             *   server unchanged                → nothing to do.
+             */
+            if (serverLinkId !== lastServerLinkId) {
+                lastServerLinkId = serverLinkId;
+                // Only FOLLOW a remote song change once our session is live —
+                // i.e. the user has clicked START (which also satisfies the
+                // browser's autoplay-gesture requirement). Before that we just
+                // record the baseline above, so OPENING the dashboard never
+                // auto-starts music, even when a now_playing row already
+                // exists (stale from a previous party, or set by a co-host
+                // who started before us). The START overlay handles first play.
+                if (sessionStarted && serverLinkId && serverLinkId !== currentLinkId) {
+                    const remoteIdx = queue.findIndex(function(s) {
+                        return s.id === serverLinkId;
+                    });
+                    if (remoteIdx >= 0) {
+                        playSong(remoteIdx);
+                        // playSong updates currentLinkId via its wrapper.
+                    }
+                }
+            }
+            // Solo (No-Server) mode has no pause backend — the solo queue
+            // always returns is_paused:false, so reconciling would bounce the
+            // host's local pause back to un-paused. Pause is LOCAL-only here.
+            if (!isSolo && serverPaused !== lastServerIsPaused) {
+                lastServerIsPaused = serverPaused;
+                if (serverPaused !== isPaused) {
+                    applyRemotePauseState(serverPaused);
+                }
+            }
+
+            // First songs arrived — show start button or auto-start
+            if (currentIndex === -1 && queue.length > 0) {
+                if (!sessionStarted) {
+                    // Show the START overlay — need one click for browser autoplay
+                    document.getElementById('start-overlay').classList.add('visible');
+                } else if (!isPaused) {
+                    playSong(0);
+                }
+                return;
+            }
+
+            // Were waiting for more songs, and new ones appeared
+            if (isWaiting && queue.length > prevLength && !isPaused && sessionStarted) {
+                playSong(currentIndex + 1);
+            }
+
+        } catch(e) {
+            // Network error — will retry next poll
+        }
+    }
+
+    /* Mirror the local togglePause UI when the other browser flipped
+     * pause/play. Doesn't POST back — that would loop. Uses the same
+     * syncAudioPlayState() helper as the local toggle so behavior is
+     * identical. */
+    function applyRemotePauseState(paused) {
+        isPaused = paused;
+        const btn = document.getElementById('btn-pause');
+        if (btn) {
+            if (isPaused) {
+                btn.textContent = 'AUTO OFF';
+                btn.classList.add('paused');
+            } else {
+                btn.textContent = '● AUTO ON';
+                btn.classList.remove('paused');
+                if (timerRemaining <= 0 && timerInterval === null && !isWaiting) {
+                    advanceQueue();
+                }
+            }
+        }
+        syncAudioPlayState(isPaused);
+    }
+
+    // Resume media when the tab regains focus — but ONLY when it's
+    // actually appropriate. Browsers throttle/pause background-tab media,
+    // so a DJ who alt-tabs away wants playback to pick back up on return.
+    // We must NOT resume when:
+    //   • the session hasn't started yet (START overlay still up) — this
+    //     was the "autoplay on coming back" bug: switching away and back
+    //     resumed media that the host never started in the first place
+    //   • the host deliberately paused (AUTO OFF) — respect their intent
+    //   • this browser is in Host mode — it never plays audio; the DJ
+    //     browser is the audio source for the party
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) return;
+        if (!sessionStarted || isPaused || mode !== 'DJ') return;
+
+        var container = document.getElementById('player-container');
+        if (!container) return;
+        container.querySelectorAll('audio, video').forEach(function(el) {
+            if (el.paused) el.play().catch(function(){});
+        });
+    });
+
+    // Poll every 2 seconds — bumped from 4s for snappier co-host sync.
+    // /api/queue is cheap (single SELECT + a few joins) so the doubled
+    // request rate is fine, and the lower latency makes cross-browser
+    // NEXT / PAUSE feel closer to real-time.
+    setInterval(pollQueue, 2000);
+    setInterval(pollNote, 4000);
+
+    /* ╭────────────────────────── ♱ · BRANDING · ♱ ─╮ */
+
+    function uploadLogo() {
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = function() {
+            var file = input.files[0];
+            if (!file) return;
+            var gid = guildParam || '0';
+            var form = new FormData();
+            form.append('icon', file);
+            fetch('/api/guilds/' + gid + '/icon', {
+                method: 'POST',
+                body: form
+            }).then(function(r) {
+                if (r.ok) {
+                    // Update logo immediately without full refresh
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('brand-logo').src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        };
+        input.click();
+    }
+
+    function renameBrand(el) {
+        var oldName = el.textContent;
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.value = oldName;
+        input.style.cssText = 'width:120px;background:var(--bg-deep);color:var(--text);' +
+            'border:1px solid var(--accent);border-radius:3px;padding:2px 6px;' +
+            'font-size:14px;font-weight:800;letter-spacing:2px;font-family:inherit;outline:none;';
+
+        el.textContent = '';
+        el.appendChild(input);
+        input.focus();
+        input.select();
+
+        var saved = false;
+        function save() {
+            if (saved) return;
+            saved = true;
+            var newName = input.value.trim() || oldName;
+            el.textContent = newName;
+            // Save to localStorage per guild
+            var gid = guildParam || '0';
+            localStorage.setItem('brand_name_' + gid, newName);
+        }
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); save(); }
+            if (e.key === 'Escape') { el.textContent = oldName; }
+        });
+        input.addEventListener('blur', function() { setTimeout(save, 100); });
+    }
+
+    // Load saved branding + mode on startup
+    (function() {
+        var gid = guildParam || '0';
+
+        // Load custom guild icon as logo
+        var iconUrl = '/booth/guild_icons/' + gid + '.png';
+        var testImg = new Image();
+        testImg.onload = function() {
+            document.getElementById('brand-logo').src = iconUrl;
+        };
+        testImg.src = iconUrl;
+
+        // Load saved brand name
+        var savedName = localStorage.getItem('brand_name_' + gid);
+        if (savedName) {
+            document.getElementById('brand-name').textContent = savedName;
+        }
+
+        // Load saved DJ / Host mode for this guild
+        loadStoredMode();
+    })();
+
+    // Initial fetch
+    refreshContextHeader();
+    pollQueue();
+    pollNote();
+
+    // No-Server tools: reveal in solo mode + sync the toggle from the session.
+    if (isSolo) {
+        document.getElementById('solo-tools').style.display = 'flex';
+        fetch('/api/solo/sessions')
+            .then(function(r){ return r.json(); })
+            .then(function(list){
+                var s = (list || []).find(function(x){ return x.id === soloParam; }) || {};
+                document.getElementById('watcher-toggle').checked = !!s.watcher_enabled;
+            }).catch(function(){});
+    }
+
+    </script>
+</body>
+</html>

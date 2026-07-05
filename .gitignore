@@ -1,0 +1,62 @@
+# ============================================================
+#  Stardust Radio — repository ignores
+# ============================================================
+
+# ── Secrets / runtime data ───────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+watcher_tokens.json
+no_server_sessions.json
+no_server_sessions.json.corrupt*
+guild_icons/
+
+# ── Python ───────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# ── Node (in case JS tooling gets added later) ───────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+
+# ── OS junk ──────────────────────────────────────────────────
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+*.swo
+
+# ── IDE / editor ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ── Claude Code / dev workflow (never publish these) ─────────
+.superpowers/
+.claude/
+docs/superpowers/
+
+# ── Logs / temp ──────────────────────────────────────────────
+*.log
+*.tmp
+tmp/
+temp/

@@ -1,0 +1,184 @@
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      Stardust Radio — Booth auth pages (login, callback errors)
+/*      Layered on top of landing.css since the visuals match.
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Auth error banner — appears above the sign-in card
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.auth-error {
+  width: 100%;
+  max-width: 540px;
+  padding: 0.75rem 1.2rem;
+  background: rgba(220, 80, 80, 0.18);
+  border: 1.5px solid rgba(220, 80, 80, 0.6);
+  border-radius: 12px;
+  color: #ffd6d6;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 0 18px rgba(220, 80, 80, 0.25);
+  animation: landing-fade-in 0.6s ease-out;
+}
+
+/* Clickable "join the support server" button, rendered inside the error
+   banner when a non-member gets bounced from sign-in. Gold pill so it pops
+   against the red banner. */
+.auth-join-btn {
+  display: inline-block;
+  margin-top: 0.7rem;
+  padding: 0.5rem 1.3rem;
+  background: linear-gradient(180deg, #f6dea2 0%, #e6c277 50%, #c89f50 100%);
+  color: #1b1306;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-radius: 999px;
+  border: 1px solid var(--c-gold);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease, filter 0.2s ease;
+}
+.auth-join-btn:hover { transform: translateY(-1px); filter: brightness(1.06); }
+.auth-join-btn:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Sign-in card — wraps the Discord button + helper text
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.auth-card {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 2rem 1.6rem;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1.5px solid var(--c-gold);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 0 24px rgba(240, 212, 138, 0.2);
+  text-align: center;
+  animation: landing-fade-in 1.4s ease-out;
+}
+.auth-card__hint {
+  margin: 0;
+  font-size: 0.92rem;
+  letter-spacing: 0.04em;
+  color: var(--c-grey-bright);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+  line-height: 1.55;
+}
+.auth-card__hint strong {
+  color: var(--c-gold);
+}
+.auth-card__fineprint {
+  margin: 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--c-grey-soft);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: "Sign in with Discord" button — official discord blurple
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.auth-discord-btn {
+  --discord-blurple: #5865F2;
+  --discord-blurple-hover: #4752C4;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.85rem 1.8rem;
+  background: var(--discord-blurple);
+  color: #fff;
+  border: 0;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 4px 16px rgba(88, 101, 242, 0.45),
+    0 0 24px rgba(88, 101, 242, 0.25);
+  transition: transform 0.18s ease, box-shadow 0.3s ease, background 0.25s ease;
+}
+.auth-discord-btn:hover {
+  background: var(--discord-blurple-hover);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 6px 22px rgba(88, 101, 242, 0.55),
+    0 0 32px rgba(88, 101, 242, 0.35);
+}
+.auth-discord-btn:active {
+  transform: translateY(0);
+}
+.auth-discord-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+}
+.auth-discord-btn__icon {
+  width: 22px; height: 22px;
+  flex: 0 0 auto;
+}
+.auth-discord-btn__label {
+  line-height: 1;
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Booth landing card — placeholder until Piece 3 lands
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.booth-welcome {
+  width: 100%;
+  max-width: 540px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 2rem 1.6rem;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1.5px solid var(--c-gold);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 0 24px rgba(240, 212, 138, 0.2);
+  text-align: center;
+  animation: landing-fade-in 1.4s ease-out;
+}
+.booth-welcome__greeting {
+  margin: 0;
+  font-size: 1.2rem;
+  letter-spacing: 0.06em;
+  color: var(--c-grey-bright);
+}
+.booth-welcome__greeting strong { color: var(--c-gold); }
+.booth-welcome__body {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--c-grey-light);
+  letter-spacing: 0.04em;
+  line-height: 1.55;
+}
+.booth-welcome__signout {
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--c-grey-soft);
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+  padding-bottom: 0.15rem;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.booth-welcome__signout:hover {
+  color: var(--c-gold);
+  border-bottom-color: var(--c-gold);
+}

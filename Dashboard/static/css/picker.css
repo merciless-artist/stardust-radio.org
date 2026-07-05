@@ -1,0 +1,211 @@
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Picker page layout — channel cards in a stage-style grid
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+body.picker-page {
+  /* override single-page overflow:hidden so the picker grid scrolls if many channels exist */
+  overflow-y: auto;
+  overflow-x: hidden;
+  grid-template-rows: auto auto 1fr auto;
+}
+
+.picker-subtitle {
+  position: relative;
+  z-index: 5;
+  margin: 0 auto;
+  text-align: center;
+  font-family: 'Cinzel', 'Cormorant Garamond', serif;
+  font-size: clamp(0.85rem, 1.2vw, 1.05rem);
+  letter-spacing: 0.4em;
+  color: var(--c-grey-soft);
+  text-transform: uppercase;
+  text-shadow: 0 0 18px rgba(240, 212, 138, 0.25);
+  padding: 0 1rem 2vh;
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Grid of channel tiles
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.picker-grid {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 360px));
+  justify-content: center;     /* center cards instead of stretching */
+  align-content: start;        /* don't stretch row heights to fill body */
+  align-items: start;          /* each card sizes to its own content */
+  gap: clamp(1rem, 2vw, 2rem);
+  padding: 0 clamp(1rem, 5vw, 6rem) 4vh;
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+.picker-loading {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-family: 'Cinzel', 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  letter-spacing: 0.16em;
+  color: var(--c-grey-soft);
+  padding: 4vh 0;
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Individual channel card
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.channel-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1.5rem 1.3rem 1.2rem;
+  height: max-content;          /* size to content, don't stretch */
+  align-self: start;            /* belt-and-suspenders: don't fill row */
+  border: 2px solid var(--c-gold);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(8,4,16,0.92), rgba(0,0,0,0.96));
+  box-shadow:
+    inset 0 0 0 2px rgba(0,0,0,0.6),
+    0 6px 24px -8px rgba(0,0,0,0.7),
+    0 0 30px -8px var(--c-gold-soft);
+  text-decoration: none;
+  color: inherit;
+  font-family: 'Cinzel', 'Cormorant Garamond', serif;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+/* Decorative bulb-dot strip — rendered as a separate pseudo-element so it
+   doesn't fight with the card's main background. Sits inside the top border. */
+.channel-card::before {
+  content: "";
+  position: absolute;
+  top: 6px; left: 12px; right: 12px;
+  height: 4px;
+  background-image: radial-gradient(circle, var(--c-gold) 0 1.5px, transparent 2px);
+  background-size: 12px 4px;
+  background-repeat: repeat-x;
+  opacity: 0.7;
+  pointer-events: none;
+}
+.channel-card::after {
+  content: "";
+  position: absolute;
+  bottom: 6px; left: 12px; right: 12px;
+  height: 4px;
+  background-image: radial-gradient(circle, var(--c-gold) 0 1.5px, transparent 2px);
+  background-size: 12px 4px;
+  background-repeat: repeat-x;
+  opacity: 0.7;
+  pointer-events: none;
+}
+.channel-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  border-color: #ffe9aa;
+  box-shadow:
+    inset 0 0 0 2px rgba(0,0,0,0.6),
+    0 12px 36px -8px rgba(0,0,0,0.8),
+    0 0 50px -6px var(--c-gold-soft);
+}
+.channel-card:focus-visible {
+  outline: 2px solid #ffe9aa;
+  outline-offset: 4px;
+}
+
+.channel-card__name {
+  margin: 0;
+  font-size: clamp(1.1rem, 1.6vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--c-grey-bright);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+  word-break: break-word;
+}
+
+.channel-card__nowplaying {
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  color: var(--c-grey-light);
+  min-height: 2.5em;            /* reserve space so cards line up */
+  line-height: 1.35;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+}
+
+.channel-card__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-grey-soft);
+  margin-top: 0.4rem;           /* small spacing — no longer push to bottom */
+}
+
+.channel-card__listeners {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.channel-card__listeners-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--c-grey-mute, #555);
+  display: inline-block;
+}
+.channel-card[data-online="true"] .channel-card__listeners-dot {
+  background: #ff5577;
+  box-shadow: 0 0 8px #ff5577;
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+
+.channel-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--c-gold);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+}
+.channel-card__cta::after {
+  content: "→";
+  transition: transform 0.18s ease;
+}
+.channel-card:hover .channel-card__cta::after {
+  transform: translateX(3px);
+}
+
+/* Live-now indicator badge in the top-right corner of the card */
+.channel-card__live {
+  position: absolute;
+  top: -10px;
+  right: 1rem;
+  background: linear-gradient(135deg, #ff5577, #ff2244);
+  color: #fff;
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  box-shadow: 0 0 18px rgba(255, 85, 119, 0.55);
+  display: none;
+}
+.channel-card[data-online="true"] .channel-card__live { display: inline-block; }
+
+@media (max-width: 600px) {
+  .picker-grid {
+    grid-template-columns: 1fr;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .channel-card { transition: none; }
+  .channel-card[data-online="true"] .channel-card__listeners-dot { animation: none; }
+}

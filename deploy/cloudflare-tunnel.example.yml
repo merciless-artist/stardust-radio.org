@@ -1,0 +1,32 @@
+# =================================================================
+#  Cloudflare Tunnel — ingress config (example)
+#
+#  Where this lives on your machine:
+#    Windows (service):  C:\Windows\System32\config\systemprofile\.cloudflared\config.yml
+#    Windows (user):     %USERPROFILE%\.cloudflared\config.yml
+#    Linux/macOS:        ~/.cloudflared/config.yml
+#
+#  Replace <UUID> with your tunnel's UUID (from `cloudflared tunnel create`)
+#  and yourdomain.com with your actual domain.
+# =================================================================
+
+tunnel: <UUID>
+credentials-file: /path/to/.cloudflared/<UUID>.json
+
+ingress:
+  # AzuraCast admin and streaming endpoint
+  - hostname: radio.yourdomain.com
+    service: http://localhost:80
+
+  # Custom listener-facing site (the Flask dashboard, port 8080)
+  - hostname: yourdomain.com
+    service: http://localhost:8080
+    originRequest:
+      noHappyEyeballs: true
+  - hostname: www.yourdomain.com
+    service: http://localhost:8080
+    originRequest:
+      noHappyEyeballs: true
+
+  # Catch-all — anything else returns 404
+  - service: http_status:404

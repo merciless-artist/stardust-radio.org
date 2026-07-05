@@ -1,0 +1,84 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="description" content="Stardust Radio — live community radio. Listening parties, broadcasts, and music made by community DJs." />
+  <meta name="theme-color" content="#000000" />
+
+  <title>Stardust Radio</title>
+
+  <link rel="icon" type="image/svg+xml" href="/static/assets/favicon.svg" />
+  <link rel="stylesheet" href="/static/css/styles.css" />
+  <link rel="stylesheet" href="/static/css/landing.css?v=20260702" />
+
+  <!-- Runtime config (azuracastBase, defaultShortcode, etc.) — must be loaded
+       before landing.js so window.RADIO_CONFIG is available there. -->
+  <script src="/api/config.js"></script>
+
+  <link rel="preload" as="image" href="/static/assets/stage-gold.png" />
+  <link rel="preload" as="image" href="/static/assets/title-gold.png" />
+  <link rel="preload" as="image" href="/static/assets/spotlight.png" />
+</head>
+
+<!-- ⪧•──────⪧✿⪦── 🌟 ──⪧✿──────⪦ ◯ ✦ ◯ ──────⪧✿──────⪧✿──────⪦ -->
+<!--    Stardust Radio — Landing Page                              -->
+<!--    The front door. Tagline, live broadcasts, tune-in CTA,    -->
+<!--    host sign-in. No audio plays here — this is the lobby.    -->
+<!-- ⪧──•───✿⪦──────⪧•────────⪧✿⪦ ◯ ✦ ◯ ✿⪦────⪧•───⋆───✿⪦────•⪦ -->
+<body class="landing-page">
+
+  <!-- Stage backdrop — gold variant lit from the start (this is the "we're live" front door) -->
+  <div class="stage-bg stage-bg--silver" aria-hidden="true"></div>
+  <div class="stage-bg stage-bg--gold"   aria-hidden="true" style="opacity:1;"></div>
+
+  <!-- Soft spotlight wash overhead -->
+  <img class="spotlight landing-spotlight" src="/static/assets/spotlight.png" alt="" aria-hidden="true" />
+
+  <main class="landing" role="main">
+
+    <!-- Hero: wordmark + tagline -->
+    <section class="landing-hero">
+      <h1 class="visually-hidden">Stardust Radio</h1>
+      <img class="landing-wordmark" src="/static/assets/title-gold.png" alt="Stardust Radio" />
+      <p class="landing-tagline">Live community radio.</p>
+      <div class="landing-divider" aria-hidden="true">✦</div>
+    </section>
+
+    <!-- Now broadcasting — JS fills this from /api/stations + per-station nowplaying -->
+    <section class="landing-broadcasts" aria-labelledby="broadcasts-heading">
+      <h2 class="landing-broadcasts__heading" id="broadcasts-heading">Now Broadcasting</h2>
+      <div class="landing-broadcasts__list" id="broadcasts-list" aria-live="polite">
+        <p class="landing-broadcasts__loading">Tuning into the airwaves…</p>
+      </div>
+    </section>
+
+    <!-- Primary CTA: tune in -->
+    <div class="landing-cta">
+      <a href="/listen" class="landing-cta__primary" aria-label="Tune in — pick a channel">
+        <span class="landing-cta__icon" aria-hidden="true">▶</span>
+        <span class="landing-cta__label">TUNE IN</span>
+      </a>
+      <a href="/booth/login" class="landing-cta__primary" aria-label="Host sign in">
+        <span class="landing-cta__label">HOST SIGN IN</span>
+      </a>
+    </div>
+
+  </main>
+
+  <!-- Footer: Discord + legal links -->
+  <footer class="landing-footer" role="contentinfo">
+    <a class="landing-footer__link" href="#" rel="noopener noreferrer" target="_blank">
+      Join the community
+    </a>
+    <nav class="landing-footer__legal" aria-label="Legal">
+      <a href="/privacy" rel="noopener noreferrer" target="_blank">Privacy Policy</a>
+      <span class="landing-footer__legal-sep" aria-hidden="true">·</span>
+      <a href="/terms" rel="noopener noreferrer" target="_blank">Terms of Service</a>
+    </nav>
+  </footer>
+
+  <script src="/static/js/landing.js" type="module"></script>
+</body>
+</html>

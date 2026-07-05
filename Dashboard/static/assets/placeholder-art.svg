@@ -1,0 +1,22 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-label="Placeholder album art">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"  stop-color="#241355"/>
+      <stop offset="100%" stop-color="#0b0820"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0%"  stop-color="#ff4dd2" stop-opacity="0.55"/>
+      <stop offset="60%" stop-color="#ff4dd2" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="320" height="320" fill="url(#g)"/>
+  <circle cx="160" cy="135" r="120" fill="url(#glow)"/>
+  <g fill="none" stroke="#f5f3ff" stroke-opacity="0.85" stroke-linecap="round" stroke-width="3">
+    <circle cx="160" cy="160" r="58"/>
+    <circle cx="160" cy="160" r="6" fill="#f5f3ff"/>
+  </g>
+  <text x="160" y="270" text-anchor="middle"
+        font-family="Helvetica Neue, system-ui, sans-serif"
+        font-size="14" letter-spacing="6"
+        fill="#b6b1d4">STARDUST · RADIO</text>
+</svg>

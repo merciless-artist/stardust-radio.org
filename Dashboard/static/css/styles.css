@@ -1,0 +1,775 @@
+﻿/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Design tokens (Stardust Radio palette)
+/*      Idle = silver/gray (lights off)
+/*      Playing = warm gold (lights on)
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+:root {
+  --c-bg:           #000000;
+  --c-grey-1:       #35393d;
+  --c-grey-2:       #474b4f;
+  --c-grey-3:       #545454;
+  --c-grey-soft:    #a6a6a6;
+  --c-grey-light:   #b4b4b4;
+  --c-grey-bright:  #dadada;
+
+  --c-gold-deep:    #645840;
+  --c-gold:         #f0d48a;
+  --c-gold-soft:    rgba(240, 212, 138, 0.25);
+
+  --t-state: 800ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Reset + base
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: #000;
+  color: var(--c-grey-bright);
+  font-family: 'Cinzel', 'Cormorant Garamond', 'Times New Roman', serif;
+  letter-spacing: 0.04em;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+body {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;  /* title, lyrics, stage, footer */
+  min-height: 100dvh;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0);
+  white-space: nowrap; border: 0;
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Stage backgrounds (silver vs gold cross-fade)
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.stage-bg {
+  position: fixed;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 0;
+  pointer-events: none;
+  transition: opacity var(--t-state);
+}
+.stage-bg--silver { background-image: url('/static/assets/stage-silver.png'); opacity: 1; }
+.stage-bg--gold   { background-image: url('/static/assets/stage-gold.png');   opacity: 0; }
+body.is-playing .stage-bg--silver { opacity: 0; }
+body.is-playing .stage-bg--gold   { opacity: 1; }
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Spotlight + dustmotes — positioned BELOW the title
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.spotlight {
+  position: fixed;
+  top: 21vh;                       /* sits below the title (tiny smidge down) */
+  left: 50%;
+  transform: translateX(-50%);
+  height: 75vh;
+  width: auto;
+  max-width: 70vw;
+  object-fit: contain;
+  z-index: 1;
+  pointer-events: none;
+  /* Theater logic: lights off → no spotlights. Fades in only when playing. */
+  opacity: 0;
+  transition: filter var(--t-state), opacity var(--t-state);
+}
+body.is-playing .spotlight {
+  filter: hue-rotate(35deg) saturate(2.2) brightness(1.05) sepia(0.35);
+  opacity: 1;
+}
+
+.dustmotes {
+  position: fixed;
+  top: 21vh;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 60vh;
+  width: auto;
+  max-width: 50vw;
+  object-fit: contain;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+  transition: opacity var(--t-state);
+}
+body.is-playing .dustmotes { opacity: 0.9; }
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Title bar — Stardust Radio wordmark, top-center
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.title-bar {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  padding: 4vh 2rem 0;          /* lowered so title bottom hits the spotlight tops */
+  min-height: 18vh;
+}
+.title-img {
+  height: clamp(120px, 17vh, 220px);   /* bigger */
+  width: auto;
+  max-width: 70vw;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: opacity var(--t-state);
+}
+.title-img--gold {
+  position: absolute;
+  top: 4vh;
+  opacity: 0;
+}
+body.is-playing .title-img--silver { opacity: 0; }
+body.is-playing .title-img--gold   { opacity: 1; }
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Twitch stage — channels with source_type "twitch"
+/*      The standard album/play/info stage is hidden; the Twitch
+/*      iframe takes over the middle of the page. Title bar + footer
+/*      stay so the channel still feels like part of Stardust Radio.
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.twitch-stage {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 clamp(1rem, 4vw, 5rem) 2vh;
+  min-height: 0;
+}
+.twitch-stage[hidden] { display: none; }
+.twitch-stage__frame {
+  width: 100%;
+  max-width: 1280px;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 2px solid var(--c-gold);
+  box-shadow:
+    inset 0 0 0 2px rgba(0,0,0,0.6),
+    0 0 28px var(--c-gold-soft),
+    0 12px 32px rgba(0,0,0,0.7);
+  background: #000;
+}
+.twitch-stage__iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+.twitch-stage__open-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--c-grey-light);
+  text-decoration: none;
+  padding: 0.45rem 1rem;
+  border: 2px solid var(--c-gold);
+  border-radius: 999px;
+  background: rgba(0,0,0,0.6);
+  box-shadow:
+    inset 0 0 0 2px rgba(0,0,0,0.6),
+    0 0 18px var(--c-gold-soft);
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.twitch-stage__open-link:hover {
+  color: var(--c-gold);
+  border-color: var(--c-gold);
+}
+
+/* When the Twitch stage is the active layout, also hide the bits of the
+   normal listener page that don't apply (lyrics ribbon, album marquee
+   audio element, etc.). JS sets `body.is-twitch` on theme load. */
+body.is-twitch .stage,
+body.is-twitch .album,
+body.is-twitch .center-stage,
+body.is-twitch .info-stack {
+  display: none !important;
+}
+body.is-twitch .spotlight,
+body.is-twitch .dustmotes {
+  display: none;
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Stage layout — left album, center button, right info
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.stage {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.9fr) minmax(0, 1fr);
+  align-items: center;
+  justify-items: center;
+  gap: clamp(1rem, 3vw, 3rem);
+  padding: 0 clamp(1rem, 4vw, 5rem) 2vh;
+  min-height: 0;
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Album marquee frame (LEFT) — slides in when playing
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.album {
+  position: relative;
+  /* Display marquee — vertically centered against the play button, with
+     enough breathing room above the footer to feel lifted. Sized so the
+     full marquee plus its bulb border stays inside the viewport. */
+  height: clamp(380px, 66vh, 760px);
+  aspect-ratio: 3 / 4;                /* matches new largermarquee */
+  width: auto;                        /* derived from aspect-ratio + height */
+  align-self: center;                 /* centered vertically in the stage row */
+  /* Hidden in idle, slides in when playing */
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: opacity var(--t-state), transform var(--t-state);
+  pointer-events: none;
+}
+body.is-playing .album {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.album__inner {
+  position: absolute;
+  /* Pulled in close to the marquee frame's transparent window so the
+     album art fills as much of the opening as possible. If the art ever
+     bleeds behind the bulb border, push these numbers up a couple %. */
+  top: 7%; left: 10%; right: 10%; bottom: 7%;
+  border-radius: 2%;
+  overflow: hidden;
+  background: #0a0a0a;
+}
+.album__art,
+.album__video {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.4s ease;
+}
+.album__video[hidden] { display: none; }
+.album__inner[data-mode="video"] .album__art { opacity: 0; }
+
+.album__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  z-index: 2;
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Center stage — metallic play/pause button
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.center-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  /* Stay roughly centered with the spotlight, no longer chasing the
+     bottom of its grid cell (was bumping into the footer logo) */
+}
+.play-btn {
+  --size: clamp(110px, 11vw, 170px);
+  width: var(--size);
+  height: var(--size);
+  /* Visible CSS fallback so the button is there even if the PNG fails to
+     load (Comet/aggressive caching has been silently dropping btn-play.png) */
+  background:
+    radial-gradient(circle at 30% 30%, #4a4a4a 0%, #1a1a1a 70%, #0a0a0a 100%);
+  border: 2px solid var(--c-grey-bright);
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  display: grid;
+  place-items: center;
+  transition: transform 0.2s ease, filter var(--t-state);
+  filter: drop-shadow(0 0 22px rgba(255,255,255,0.18));
+  overflow: hidden;          /* keeps the PNG inside the rounded shape */
+}
+.play-btn:hover  { transform: scale(1.04); }
+.play-btn:active { transform: scale(0.96); }
+.play-btn:focus-visible {
+  outline: 2px solid var(--c-grey-bright);
+  outline-offset: 6px;
+  border-radius: 50%;
+}
+body.is-playing .play-btn {
+  filter: drop-shadow(0 0 30px var(--c-gold-soft));
+}
+.play-btn__icon {
+  width: 100%; height: 100%;
+  grid-area: 1 / 1;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: opacity var(--t-state);
+}
+.play-btn__icon--pause { opacity: 0; }
+body.is-playing .play-btn__icon--play  { opacity: 0; }
+body.is-playing .play-btn__icon--pause { opacity: 1; }
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Right info stack — slides in when playing
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.info-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  width: clamp(280px, 32vw, 520px);
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity var(--t-state), transform var(--t-state);
+  pointer-events: none;
+}
+body.is-playing .info-stack {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Title pill — track title + artist, chip-style
+/*      Sits ABOVE the lyrics marquee, matching the listening / recent
+/*      tracks chip aesthetic.
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.title-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 0.55rem 1.4rem;
+  border: 2px solid var(--c-gold);
+  border-radius: 22px;
+  background: rgba(0,0,0,0.6);
+  box-shadow:
+    inset 0 0 0 2px rgba(0,0,0,0.6),
+    0 0 18px var(--c-gold-soft);
+  text-align: center;
+}
+.title-pill__title {
+  margin: 0;
+  /* Clipping container for long titles — the inner span scrolls. */
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: center;
+  font-size: clamp(1rem, 1.5vw, 1.4rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--c-grey-bright);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+.title-pill__title.is-marquee { text-align: left; }
+.title-pill__title-text {
+  display: inline-block;
+  white-space: nowrap;
+}
+/* Auto-marquee for long titles: glide left, pause, fade out, snap back,
+   fade in. One direction only — no swaying. JS toggles `.is-scrolling`
+   and sets `--scroll-distance` to the exact overflow in px (negative). */
+.title-pill__title-text.is-scrolling {
+  animation: scroll-title 14s ease-in-out infinite;
+}
+@keyframes scroll-title {
+  0%,  8%   { transform: translateX(0);                          opacity: 1; }
+  55%, 80%  { transform: translateX(var(--scroll-distance, 0));  opacity: 1; }
+  87%       { transform: translateX(var(--scroll-distance, 0));  opacity: 0; }
+  88%       { transform: translateX(0);                          opacity: 0; }
+  95%, 100% { transform: translateX(0);                          opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-pill__title-text.is-scrolling { animation: none; }
+}
+.title-pill__artist {
+  margin: 0.2rem 0 0;
+  font-size: clamp(0.7rem, 1vw, 0.92rem);
+  color: var(--c-grey-soft);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  min-height: 1.2em;          /* reserve space even when empty */
+}
+.title-pill__artist:empty::before {
+  content: "—";
+  opacity: 0.4;
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Lyrics marquee — frame hosts karaoke-scrolling lyrics
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.info-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1050 / 600;         /* matches frame-nowplaying.png */
+}
+.info-card__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  z-index: 1;
+}
+.info-card__nowplaying {
+  position: absolute;
+  /* Inset past the bulb border so lyric lines never collide with the bulbs. */
+  top: 11%; left: 13%; right: 13%; bottom: 11%;
+  z-index: 2;
+  overflow: hidden;
+}
+
+/* Karaoke-style scrolling lyrics — current line highlighted in the
+   accent color, neighboring lines dim, soft fade at top/bottom edges. */
+.info-card__lyrics {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  mask-image: linear-gradient(
+    to bottom, transparent 0%, #000 22%, #000 78%, transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom, transparent 0%, #000 22%, #000 78%, transparent 100%
+  );
+}
+.info-card__lyrics[hidden] { display: none; }
+.info-card__lyrics-track {
+  width: 100%;
+  text-align: center;
+  /* Cormorant Garamond instead of Cinzel — has real lowercase letters
+     so lyric paragraphs feel softer instead of all-caps aggressive. */
+  font-family: 'Cormorant Garamond', 'EB Garamond', 'Times New Roman', serif;
+  letter-spacing: 0.02em;
+  transition: transform 1s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.info-card__lyrics-track .lyric-line {
+  display: block;
+  padding: 0.25em 0.6em;
+  /* Cormorant runs visually smaller than Cinzel at the same px size,
+     so we bump the clamp() values a touch to keep the same visual weight. */
+  font-size: clamp(1rem, 1.5vw, 1.35rem);
+  color: #ffffff;
+  opacity: 0.45;
+  transition: opacity 0.4s ease, font-weight 0.4s ease, text-shadow 0.4s ease;
+}
+.info-card__lyrics-track .lyric-line.is-current {
+  opacity: 1;
+  color: #ffffff;
+  text-shadow:
+    0 0 8px rgba(255, 255, 255, 0.7),
+    0 0 16px rgba(255, 255, 255, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.85);
+  font-weight: 600;
+}
+
+/* Side-by-side row: listening + recent tracks toggle */
+.info-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+  align-items: start;
+  width: 100%;
+}
+
+/* Listening banner (capsule with gold border) */
+.listening-banner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.45rem 1rem;
+  border: 2px solid var(--c-gold);
+  border-radius: 999px;
+  background: rgba(0,0,0,0.6);
+  box-shadow:
+    inset 0 0 0 2px rgba(0,0,0,0.6),
+    0 0 18px rgba(240, 212, 138, 0.3);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  height: 100%;
+}
+.listening-banner__icon {
+  height: 1.3rem;
+  width: auto;
+}
+.listening-banner__count {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--c-grey-bright);
+}
+.listening-banner__label {
+  font-size: 0.78rem;
+  color: var(--c-grey-light);
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Recent tracks (expandable history panel)
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.history {
+  font-family: 'Cinzel', 'Cormorant Garamond', serif;
+}
+.history__toggle {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.35rem 0.9rem 0.35rem 0.45rem;
+  border: 2px solid var(--c-gold);
+  border-radius: 999px;
+  background: rgba(0,0,0,0.6);
+  box-shadow:
+    inset 0 0 0 2px rgba(0,0,0,0.6),
+    0 0 18px rgba(240, 212, 138, 0.3);
+  color: var(--c-grey-light);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  user-select: none;
+  white-space: nowrap;
+  height: 100%;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.history__toggle::-webkit-details-marker { display: none; }
+.history__toggle::marker { display: none; }
+.history__toggle:hover {
+  border-color: var(--c-gold);
+  color: var(--c-grey-bright);
+}
+.history__icon {
+  width: 26px; height: 26px;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: transform 0.3s ease;
+}
+.history[open] .history__icon { transform: rotate(360deg); }
+.history__label { line-height: 1; }
+
+.history__list {
+  list-style: none;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  display: grid;
+  gap: 0.4rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-gold) transparent;
+}
+.history__list::-webkit-scrollbar { width: 6px; }
+.history__list::-webkit-scrollbar-thumb { background: var(--c-gold); border-radius: 3px; }
+.history__item {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.4rem 0.6rem;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+.history__item:hover { background: rgba(240, 212, 138, 0.08); }
+.history__art {
+  width: 36px; height: 36px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #0a0a0a;
+}
+.history__meta { display: grid; gap: 0.1rem; min-width: 0; }
+.history__title {
+  font-size: 0.85rem;
+  color: var(--c-grey-bright);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.history__artist {
+  font-size: 0.7rem;
+  color: var(--c-grey-soft);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.history__empty {
+  color: var(--c-grey-soft);
+  font-style: italic;
+  text-align: center;
+  font-size: 0.78rem;
+  padding: 0.5rem;
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Volume slider — bar image + chrome 4-point star thumb
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.volume {
+  position: relative;
+  width: clamp(220px, 26vw, 360px);
+  height: clamp(28px, 3vh, 44px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.volume__bar {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  z-index: 1;
+}
+.volume__input {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  /* Offset so the star thumb at MUTE (value=0) sits just to the right of
+     the speaker icon, not overlapping it. */
+  width: 60%;
+  margin-left: 28%;
+  height: 100%;
+  background: transparent;
+  cursor: pointer;
+  z-index: 2;
+}
+.volume__input::-webkit-slider-runnable-track { height: 4px; background: transparent; }
+.volume__input::-moz-range-track              { height: 4px; background: transparent; }
+
+/* Chrome 4-point star thumb using the actual star asset */
+.volume__input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 26px; height: 26px;
+  background: url('/static/assets/star-knob.png') no-repeat center / contain;
+  border: 0;
+  margin-top: -13px;
+  filter: drop-shadow(0 0 4px var(--c-gold-soft));
+  cursor: pointer;
+}
+.volume__input::-moz-range-thumb {
+  width: 26px; height: 26px;
+  background: url('/static/assets/star-knob.png') no-repeat center / contain;
+  border: 0;
+  filter: drop-shadow(0 0 4px var(--c-gold-soft));
+  cursor: pointer;
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Footer — Discord logo + legal links
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.brand-footer {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 1vh 1rem 2vh;
+}
+
+.brand-footer__link {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+.brand-footer__logo {
+  height: clamp(44px, 5.5vh, 72px);
+  width: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: opacity var(--t-state);
+}
+.brand-footer__logo--gold {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+body.is-playing .brand-footer__logo--silver { opacity: 0; }
+body.is-playing .brand-footer__logo--gold   { opacity: 1; }
+
+/* Small text row beneath the Discord logo — Privacy / Terms */
+.brand-footer__legal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--c-grey-soft, rgba(220, 220, 220, 0.5));
+  opacity: 0.7;
+}
+.brand-footer__legal a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(240, 212, 138, 0.18);
+  padding-bottom: 1px;
+  transition: color 0.25s ease, border-color 0.25s ease;
+}
+.brand-footer__legal a:hover,
+.brand-footer__legal a:focus-visible {
+  color: var(--c-gold, #f0d48a);
+  border-bottom-color: var(--c-gold, #f0d48a);
+  outline: none;
+}
+.brand-footer__legal-sep {
+  opacity: 0.5;
+  user-select: none;
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Mobile/tablet
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+@media (max-width: 800px) {
+  html, body { overflow-y: auto; }
+  .stage {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    padding: 0 1rem;
+    gap: 1.5rem;
+  }
+  .spotlight, .dustmotes { max-width: 90vw; }
+  .album   { width: clamp(200px, 60vw, 360px); }
+  .info-stack { width: clamp(280px, 88vw, 460px); align-self: center; }
+  .center-stage { align-self: center; padding-bottom: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+  .dustmotes { display: none; }
+}

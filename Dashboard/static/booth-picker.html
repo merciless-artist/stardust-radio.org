@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DJ Booth — Select Server</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-deep: #08080f;
+            --bg-panel: #0f0f1e;
+            --accent: #e94560;
+            --text: #d0d0d8;
+            --text-dim: #606078;
+            --text-muted: #3a3a50;
+            --border: #1a1a35;
+        }
+
+        body {
+            background: var(--bg-deep);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .picker {
+            text-align: center;
+            max-width: 480px;
+            width: 90%;
+        }
+
+        .picker-logo {
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            object-fit: cover;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: 4px;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+
+        .server-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .server-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text);
+            transition: all 0.15s;
+            cursor: pointer;
+        }
+
+        .server-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(233, 69, 96, 0.15);
+        }
+
+        .server-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1a1a35, #2a2050);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .server-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .server-icon:hover::after {
+            content: '✎';
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #fff;
+        }
+
+        .file-input { display: none; }
+
+        .server-info {
+            text-align: left;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .server-name {
+            font-weight: 700;
+            font-size: 16px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .server-meta {
+            color: var(--text-dim);
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        .server-arrow {
+            color: var(--text-muted);
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .server-card:hover .server-arrow { color: var(--accent); }
+
+        .empty {
+            color: var(--text-muted);
+            font-size: 15px;
+            padding: 40px 0;
+        }
+
+        .loading {
+            color: var(--text-dim);
+            font-size: 15px;
+            padding: 40px 0;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+
+        .solo-section { margin-top: 32px; }
+        .solo-section__head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .solo-new-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, .18);
+            background: #352f5e;
+            color: #d6cffb;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .solo-new-btn:hover { filter: brightness(1.15); }
+        .solo-del {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, .45);
+            font-size: 22px;
+            cursor: pointer;
+            padding: 0 12px;
+        }
+        .solo-del:hover { color: #ff8a8a; }
+    </style>
+</head>
+<body>
+    <div class="picker">
+        <img src="/booth/logo.png" alt="" class="picker-logo">
+        <h1>DJ BOOTH</h1>
+        <p class="subtitle">Select a server</p>
+        <div class="server-list" id="server-list">
+            <div class="loading">Loading servers...</div>
+        </div>
+
+        <div class="solo-section">
+          <div class="solo-section__head">
+            <h2>No-Server Sessions</h2>
+            <button type="button" class="solo-new-btn" onclick="newSoloSession()">
+              Start a No-Server Session
+            </button>
+          </div>
+          <div id="solo-list" class="solo-list"></div>
+        </div>
+    </div>
+
+    <script>
+    fetch('/api/guilds')
+        .then(function(r) { return r.json(); })
+        .then(function(guilds) {
+            var list = document.getElementById('server-list');
+
+            if (!guilds.length || guilds.error) {
+                list.innerHTML = '<div class="empty">No servers found. Use !starttracking in a Discord channel first.</div>';
+                return;
+            }
+
+            var html = '';
+            guilds.forEach(function(g) {
+                var initial = g.name.charAt(0).toUpperCase();
+                var iconContent = g.icon
+                    ? '<img src="' + g.icon + '">'
+                    : initial;
+                html +=
+                    '<div class="server-card">' +
+                    '<div class="server-icon" onclick="event.preventDefault();event.stopPropagation();uploadIcon(\'' + g.guild_id + '\')">' + iconContent + '</div>' +
+                    '<a href="/booth?guild=' + g.guild_id + '" style="display:flex;align-items:center;gap:16px;flex:1;text-decoration:none;color:inherit;">' +
+                    '<div class="server-info">' +
+                    '<div class="server-name">' + g.name + '</div>' +
+                    '<div class="server-meta">' + g.song_count + ' songs</div>' +
+                    '</div>' +
+                    '<span class="server-arrow">&#8594;</span>' +
+                    '</a>' +
+                    '</div>';
+            });
+            list.innerHTML = html;
+        })
+        .catch(function() {
+            document.getElementById('server-list').innerHTML =
+                '<div class="empty">Could not load servers. Is the database running?</div>';
+        });
+    function uploadIcon(guildId) {
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = function() {
+            var file = input.files[0];
+            if (!file) return;
+            var form = new FormData();
+            form.append('icon', file);
+            fetch('/api/guilds/' + guildId + '/icon', {
+                method: 'POST',
+                body: form
+            }).then(function(r) {
+                if (r.ok) location.reload();
+            });
+        };
+        input.click();
+    }
+    </script>
+
+    <script>
+    function newSoloSession() {
+        var name = prompt('Name this session (e.g. the server you are LPing in):');
+        if (!name) return;
+        fetch('/api/solo/sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name })
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(s){
+            if (s && s.id) window.location.href = '/booth?solo=' + encodeURIComponent(s.id);
+        });
+    }
+
+    function loadSoloSessions() {
+        fetch('/api/solo/sessions')
+            .then(function(r){ return r.json(); })
+            .then(function(list){
+                var el = document.getElementById('solo-list');
+                if (!list || !list.length) {
+                    el.innerHTML = '<div class="empty">No sessions yet. Start one above to run a party with no bot.</div>';
+                    return;
+                }
+                el.innerHTML = list.map(function(s){
+                    var initial = (s.name || '?').charAt(0).toUpperCase();
+                    var icon = s.icon
+                        ? '<img src="/booth/solo_icons/' + escapeAttr(s.icon.split('/').pop()) + '">'
+                        : initial;
+                    return '' +
+                      '<div class="server-card">' +
+                        '<div class="server-icon" onclick="event.preventDefault();event.stopPropagation();uploadSoloIcon(\'' + s.id + '\')">' + icon + '</div>' +
+                        '<a href="/booth?solo=' + encodeURIComponent(s.id) + '" style="display:flex;align-items:center;gap:16px;flex:1;text-decoration:none;color:inherit;">' +
+                          '<div class="server-info">' +
+                            '<div class="server-name">' + escapeText(s.name) + '</div>' +
+                            '<div class="server-meta">' + (s.song_count || 0) + ' songs · no bot</div>' +
+                          '</div>' +
+                          '<span class="server-arrow">&#8594;</span>' +
+                        '</a>' +
+                        '<button class="solo-del" title="Delete session" onclick="event.preventDefault();event.stopPropagation();deleteSoloSession(\'' + s.id + '\',\'' + escapeAttr(s.name) + '\')">&times;</button>' +
+                      '</div>';
+                }).join('');
+            })
+            .catch(function(){
+                document.getElementById('solo-list').innerHTML =
+                  '<div class="empty">Could not load sessions.</div>';
+            });
+    }
+
+    function uploadSoloIcon(sid) {
+        var input = document.createElement('input');
+        input.type = 'file'; input.accept = 'image/*';
+        input.onchange = function() {
+            var file = input.files[0]; if (!file) return;
+            var form = new FormData(); form.append('icon', file);
+            fetch('/api/solo/sessions/' + sid + '/icon', { method: 'POST', body: form })
+                .then(function(r){ if (r.ok) loadSoloSessions(); });
+        };
+        input.click();
+    }
+
+    function deleteSoloSession(sid, name) {
+        if (!confirm('Delete "' + name + '"? This removes its queue.')) return;
+        fetch('/api/solo/sessions/' + sid, { method: 'DELETE' })
+            .then(function(r){ if (r.ok) loadSoloSessions(); });
+    }
+
+    function escapeText(s){ var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+    function escapeAttr(s){ return (s||'').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+
+    loadSoloSessions();
+    </script>
+</body>
+</html>

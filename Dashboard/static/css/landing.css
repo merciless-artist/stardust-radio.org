@@ -1,0 +1,372 @@
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      Stardust Radio — Landing Page styles
+/*      Front door of the platform. Lit gold from the start (no idle
+/*      state), big wordmark hero, live broadcast strip, primary CTA.
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Page chrome — full-bleed, gold-lit, scrolling allowed
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+html, body.landing-page {
+  height: auto;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+body.landing-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0;
+  font-family: 'Cinzel', 'Cormorant Garamond', 'Times New Roman', serif;
+  letter-spacing: 0.04em;
+}
+
+/* Force the gold stage on (this page doesn't have an idle state) */
+body.landing-page .stage-bg--silver { opacity: 0; }
+body.landing-page .stage-bg--gold   { opacity: 1; }
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Spotlight — softer + higher up than on the listener page
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.landing-spotlight {
+  /* Sit well below the wordmark so the beam lands on the CTA / floor area
+     rather than on the title or the "Now Broadcasting" strip. */
+  top: 46vh;
+  height: 55vh;
+  max-width: 60vw;
+  opacity: 0.65;
+  filter: hue-rotate(35deg) saturate(2) brightness(1.05) sepia(0.35);
+  animation: landing-spotlight-pulse 6s ease-in-out infinite alternate;
+}
+@keyframes landing-spotlight-pulse {
+  from { opacity: 0.55; }
+  to   { opacity: 0.75; }
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Main column — centered, vertically stacked
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.landing {
+  position: relative;
+  z-index: 5;
+  width: min(100%, 1100px);
+  margin: 0 auto;
+  padding: clamp(2rem, 5vh, 5rem) clamp(1rem, 4vw, 3rem) 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(2rem, 5vh, 4rem);
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Hero — wordmark + tagline + divider glyph
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.landing-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  text-align: center;
+  animation: landing-fade-in 1.4s ease-out;
+}
+
+.landing-wordmark {
+  height: clamp(120px, 22vh, 280px);
+  width: auto;
+  max-width: 90vw;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.6));
+}
+
+.landing-tagline {
+  margin: 0;
+  font-size: clamp(0.9rem, 1.6vw, 1.3rem);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--c-grey-bright);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+}
+
+.landing-divider {
+  font-size: clamp(0.9rem, 1.4vw, 1.2rem);
+  color: var(--c-gold);
+  opacity: 0.65;
+  letter-spacing: 1em;
+  padding-left: 1em;       /* compensate for letter-spacing offset */
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Now Broadcasting strip — live channel cards
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.landing-broadcasts {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  animation: landing-fade-in 1.6s ease-out 0.3s backwards;
+}
+
+.landing-broadcasts__heading {
+  margin: 0;
+  font-size: clamp(0.75rem, 1.1vw, 0.9rem);
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--c-grey-light);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.landing-broadcasts__heading::before {
+  content: "";
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #ff4444;
+  box-shadow: 0 0 8px #ff4444, 0 0 14px rgba(255, 68, 68, 0.5);
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1;   transform: scale(1);   }
+  50%      { opacity: 0.5; transform: scale(0.85);}
+}
+
+.landing-broadcasts__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 320px));
+  gap: 0.8rem;
+  justify-content: center;
+  width: 100%;
+  max-width: 980px;
+}
+
+.landing-broadcasts__loading,
+.landing-broadcasts__empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-grey-soft);
+  font-style: italic;
+  padding: 1rem;
+  margin: 0;
+}
+
+/* Individual live channel card */
+.broadcast-card {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.7rem 0.9rem;
+  background: rgba(0, 0, 0, 0.62);
+  border: 1.5px solid var(--c-gold);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 0 18px rgba(240, 212, 138, 0.18);
+  text-decoration: none;
+  color: var(--c-grey-bright);
+  transition: transform 0.25s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.broadcast-card:hover,
+.broadcast-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--c-gold);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 4px 24px rgba(240, 212, 138, 0.35);
+  outline: none;
+}
+
+.broadcast-card__art {
+  width: 56px; height: 56px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #0a0a0a;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.broadcast-card__meta {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.broadcast-card__channel {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--c-grey-bright);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.broadcast-card__track {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--c-grey-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-style: italic;
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Primary + secondary CTAs — Tune In big, host login small
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.landing-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  animation: landing-fade-in 1.8s ease-out 0.6s backwards;
+}
+
+.landing-cta__primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 1rem 2.6rem;
+  font-size: clamp(1rem, 1.6vw, 1.4rem);
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #1b1306;
+  background: linear-gradient(180deg, #f6dea2 0%, #e6c277 50%, #c89f50 100%);
+  border: 2px solid var(--c-gold);
+  border-radius: 999px;
+  text-decoration: none;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.25),
+    0 0 22px rgba(240, 212, 138, 0.5),
+    0 8px 24px rgba(0, 0, 0, 0.5);
+  transition: transform 0.18s ease, box-shadow 0.3s ease;
+  position: relative;
+}
+.landing-cta__primary:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.25),
+    0 0 32px rgba(240, 212, 138, 0.7),
+    0 12px 28px rgba(0, 0, 0, 0.6);
+}
+.landing-cta__primary:active {
+  transform: translateY(0) scale(0.99);
+}
+.landing-cta__primary:focus-visible {
+  outline: 2px solid var(--c-grey-bright);
+  outline-offset: 6px;
+}
+.landing-cta__icon {
+  font-size: 1em;
+  line-height: 1;
+  transform: translateY(0.05em);
+}
+
+.landing-cta__secondary {
+  font-size: 1.05rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #4b2e19;
+  text-decoration: none;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+  padding: 0.4rem 0.8rem;
+  border-bottom: 1px dashed transparent;
+  transition: color 0.2s ease, border-color 0.2s ease, letter-spacing 0.2s ease;
+}
+.landing-cta__secondary:hover {
+  color: var(--c-gold);
+  border-bottom-color: var(--c-gold);
+  letter-spacing: 0.36em;
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Footer — single discord link, lighter than listener footer
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+.landing-footer {
+  position: relative;
+  z-index: 5;
+  margin-top: auto;
+  padding: 1.2rem 1rem 2rem;
+  width: 100%;
+  text-align: center;
+  animation: landing-fade-in 2s ease-out 0.9s backwards;
+}
+.landing-footer__link {
+  font-size: 0.78rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--c-grey-soft);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(240, 212, 138, 0.25);
+  padding-bottom: 0.2rem;
+  transition: color 0.25s ease, border-color 0.25s ease;
+}
+.landing-footer__link:hover {
+  color: var(--c-gold);
+  border-bottom-color: var(--c-gold);
+}
+
+/* Small legal-link row beneath the Discord link */
+.landing-footer__legal {
+  margin-top: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--c-grey-soft);
+  opacity: 0.65;
+}
+.landing-footer__legal a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(240, 212, 138, 0.18);
+  padding-bottom: 1px;
+  transition: color 0.25s ease, border-color 0.25s ease;
+}
+.landing-footer__legal a:hover,
+.landing-footer__legal a:focus-visible {
+  color: var(--c-gold);
+  border-bottom-color: var(--c-gold);
+  outline: none;
+}
+.landing-footer__legal-sep {
+  opacity: 0.5;
+  user-select: none;
+}
+
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/*      SECTION: Animations + responsive tweaks
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
+@keyframes landing-fade-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 640px) {
+  .landing { gap: 2rem; padding-top: 2.5rem; }
+  .landing-spotlight { max-width: 90vw; opacity: 0.5; }
+  .landing-broadcasts__list { grid-template-columns: 1fr; max-width: 360px; }
+  .landing-cta__primary { padding: 0.85rem 2rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-hero,
+  .landing-broadcasts,
+  .landing-cta,
+  .landing-footer { animation: none; }
+  .landing-spotlight { animation: none; }
+  .landing-broadcasts__heading::before { animation: none; }
+}

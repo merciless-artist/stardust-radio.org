@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+.env
+no_server_sessions.json
+no_server_icons/
+guild_icons/
+*.corrupt-*
+.superpowers/
+watcher/watcher-config.json

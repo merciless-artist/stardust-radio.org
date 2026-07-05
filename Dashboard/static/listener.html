@@ -1,0 +1,166 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="description" content="Stardust Radio — late-night listening parties with pristine audio." />
+  <meta name="theme-color" content="#000000" />
+
+  <title>Stardust Radio</title>
+
+  <link rel="icon" type="image/svg+xml" href="/static/assets/favicon.svg" />
+  <link rel="stylesheet" href="/static/css/styles.css" />
+
+  <script src="/api/config.js"></script>
+
+  <link rel="preload" as="image" href="/static/assets/stage-silver.png" />
+  <link rel="preload" as="image" href="/static/assets/title-silver.png" />
+  <link rel="preload" as="image" href="/static/assets/btn-play.png" />
+</head>
+
+<!-- ⪧•──────⪧✿⪦── 🌟 ──⪧✿──────⪦ ◯ ✦ ◯ ──────⪧✿──────⪧✿──────⪦ -->
+<!--    Body has two states the CSS swaps between:                  -->
+<!--      .is-idle    → silver lights-off, only play button visible -->
+<!--      .is-playing → gold lights-on, full panels slide in        -->
+<!-- ⪧──•───✿⪦──────⪧•────────⪧✿⪦ ◯ ✦ ◯ ✿⪦────⪧•───⋆───✿⪦────•⪦ -->
+<body class="is-idle">
+
+  <!-- Stage backgrounds: both stacked, only one visible per state -->
+  <div class="stage-bg stage-bg--silver" aria-hidden="true"></div>
+  <div class="stage-bg stage-bg--gold"   aria-hidden="true"></div>
+
+  <!-- Spotlight beam + dustmotes (positioned below the title)            -->
+  <!-- Spotlight has BOTH an <img> and a <video> slot so themes can use   -->
+  <!-- either format. JS picks which one to show based on the theme's    -->
+  <!-- spotlight URL extension (.mp4/.webm/.mov → video, else → image).  -->
+  <img   class="spotlight spotlight--img" src="/static/assets/spotlight.png" alt="" aria-hidden="true" />
+  <video class="spotlight spotlight--vid" autoplay muted loop playsinline preload="auto" aria-hidden="true" hidden></video>
+  <img   class="dustmotes" src="/static/assets/dustmotes.gif" alt="" aria-hidden="true" />
+
+  <!-- ⪧•──────⪧✿⪦── ✦ ──⪧✿──────⪦ ◯ ⋆ ◯ ──────⪧✿──────⪧✿──────⪦ -->
+  <!--    SECTION: Big Stardust Radio wordmark, centered top         -->
+  <!-- ⪧──•───✿⪦──────⪧•────────⪧✿⪦ ◯ ⋆ ◯ ✿⪦────⪧•───•───✿⪦────•⪦ -->
+  <header class="title-bar" role="banner">
+    <h1 class="visually-hidden" id="station-name">Stardust Radio</h1>
+    <img class="title-img title-img--silver" src="/static/assets/title-silver.png" alt="Stardust Radio" />
+    <img class="title-img title-img--gold"   src="/static/assets/title-gold.png"   alt="" aria-hidden="true" />
+  </header>
+
+  <!-- (lyrics moved into the now-playing marquee on the right side)  -->
+
+  <!-- ⪧•──────⪧✿⪦── ✦ ──⪧✿──────⪦ ◯ ⋆ ◯ ──────⪧✿──────⪧✿──────⪦ -->
+  <!--    SECTION: Twitch stage — shown only when a channel's theme.json -->
+  <!--    has `source_type: "twitch"`. JS swaps this in (and hides the   -->
+  <!--    AzuraCast stage below) on theme load.                          -->
+  <!-- ⪧──•───✿⪦──────⪧•────────⪧✿⪦ ◯ ⋆ ◯ ✿⪦────⪧•───•───✿⪦────•⪦ -->
+  <section class="twitch-stage" id="twitch-stage" role="main" hidden>
+    <div class="twitch-stage__frame">
+      <iframe id="twitch-embed"
+              class="twitch-stage__iframe"
+              src=""
+              allowfullscreen
+              allow="autoplay"
+              referrerpolicy="strict-origin-when-cross-origin"></iframe>
+    </div>
+    <a class="twitch-stage__open-link" id="twitch-open-link" href="#" target="_blank" rel="noopener noreferrer">
+      Open on Twitch <span aria-hidden="true">↗</span>
+    </a>
+  </section>
+
+  <!-- ⪧•──────⪧✿⪦── ✦ ──⪧✿──────⪦ ◯ ⋆ ◯ ──────⪧✿──────⪧✿──────⪦ -->
+  <!--    SECTION: Main stage — left frame, center button, right info -->
+  <!-- ⪧──•───✿⪦──────⪧•────────⪧✿⪦ ◯ ⋆ ◯ ✿⪦────⪧•───•───✿⪦────•⪦ -->
+  <main class="stage" role="main">
+
+    <!-- LEFT: tall marquee album-art frame (slides in when playing) -->
+    <section class="album" aria-labelledby="now-playing-label">
+      <h2 id="now-playing-label" class="visually-hidden">Now playing</h2>
+      <div class="album__inner">
+        <img id="album-art"   class="album__art"   src="/static/assets/placeholder-art.svg" alt="" />
+        <video id="music-video" class="album__video" playsinline muted loop preload="none" hidden></video>
+      </div>
+      <img class="album__frame" src="/static/assets/frame-album.png" alt="" aria-hidden="true" />
+    </section>
+
+    <!-- CENTER: big metallic play/pause button on the spotlight floor -->
+    <div class="center-stage">
+      <button type="button" id="play-toggle" class="play-btn" aria-label="Play stream" aria-pressed="false">
+        <img class="play-btn__icon play-btn__icon--play"  src="/static/assets/btn-play.png"  alt="Play" />
+        <img class="play-btn__icon play-btn__icon--pause" src="/static/assets/btn-pause.png" alt="" aria-hidden="true" />
+      </button>
+    </div>
+
+    <!-- RIGHT: title pill + lyrics marquee + listening banner + volume slider -->
+    <section class="info-stack">
+
+      <!-- Title pill — chip-style display of the current track title + artist.
+           Sits ABOVE the marquee (which now hosts the scrolling lyrics).      -->
+      <div class="title-pill" aria-live="polite">
+        <p class="title-pill__title">
+          <span class="title-pill__title-text" id="track-title">Tuning in&hellip;</span>
+        </p>
+        <p class="title-pill__artist" id="track-artist">&nbsp;</p>
+      </div>
+
+      <!-- Marquee — displays the scrolling lyrics karaoke-style.
+           When the song has no lyrics, the marquee just shows the empty
+           bulb frame (no fallback glyph).                               -->
+      <div class="info-card">
+        <img class="info-card__frame" src="/static/assets/frame-nowplaying.png" alt="" aria-hidden="true" />
+        <div class="info-card__nowplaying">
+          <div id="lyrics-overlay" class="info-card__lyrics" aria-live="polite" aria-label="Scrolling lyrics" hidden>
+            <div class="info-card__lyrics-track" id="lyrics-track"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Listening banner + Recent tracks toggle, side by side -->
+      <div class="info-row">
+        <div class="listening-banner" aria-live="polite">
+          <img class="listening-banner__icon" src="/static/assets/icon-people.png" alt="" aria-hidden="true" />
+          <span class="listening-banner__count" id="listener-count">0</span>
+          <span class="listening-banner__label">LISTENING</span>
+        </div>
+
+        <details class="history">
+          <summary class="history__toggle" title="Recent tracks">
+            <img class="history__icon" src="/static/assets/icon-history.png" alt="" aria-hidden="true" />
+            <span class="history__label">RECENT TRACKS</span>
+          </summary>
+          <ul class="history__list" id="history-list" aria-live="polite">
+            <li class="history__empty">no tracks played yet</li>
+          </ul>
+        </details>
+      </div>
+
+      <!-- Volume slider: bar image as background, real input on top, star thumb -->
+      <div class="volume" aria-label="Volume">
+        <img class="volume__bar" src="/static/assets/volume-bar.png" alt="" aria-hidden="true" />
+        <input type="range" id="volume" min="0" max="100" value="80" class="volume__input" />
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ⪧•──────⪧✿⪦── ✦ ──⪧✿──────⪦ ◯ ⋆ ◯ ──────⪧✿──────⪧✿──────⪦ -->
+  <!--    SECTION: Footer — Discord logo                 -->
+  <!-- ⪧──•───✿⪦──────⪧•────────⪧✿⪦ ◯ ⋆ ◯ ✿⪦────⪧•───•───✿⪦────•⪦ -->
+  <footer class="brand-footer" role="contentinfo">
+    <a class="brand-footer__link" href="#" rel="noopener noreferrer" target="_blank" aria-label="Open the Discord community">
+      <img class="brand-footer__logo brand-footer__logo--silver" src="/static/assets/logo-silver.png" alt="Discord" />
+      <img class="brand-footer__logo brand-footer__logo--gold"   src="/static/assets/logo-gold.png"   alt="" aria-hidden="true" />
+    </a>
+    <nav class="brand-footer__legal" aria-label="Legal">
+      <a href="/privacy" rel="noopener noreferrer" target="_blank">Privacy Policy</a>
+      <span class="brand-footer__legal-sep" aria-hidden="true">·</span>
+      <a href="/terms" rel="noopener noreferrer" target="_blank">Terms of Service</a>
+    </nav>
+  </footer>
+
+  <audio id="stream" preload="none" crossorigin="anonymous"></audio>
+
+  <script src="/static/js/player.js" type="module"></script>
+</body>
+</html>
