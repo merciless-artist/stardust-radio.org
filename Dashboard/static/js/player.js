@@ -413,6 +413,9 @@ function setLyrics(text, durationSec) {
     lyricsTimer = null;
   }
 
+  // No lyrics UI on this theme/page → nothing to render.
+  if (!els.lyricsBox || !els.lyricsTrack) return;
+
   if (!text) {
     els.lyricsBox.hidden = true;
     els.lyricsTrack.innerHTML = '';
@@ -468,6 +471,7 @@ function setLyrics(text, durationSec) {
 }
 
 function highlightLyric(idx) {
+  if (!els.lyricsTrack) return;
   const lineEls = els.lyricsTrack.querySelectorAll('.lyric-line');
   lineEls.forEach((el) => el.classList.remove('is-current'));
   const target = lineEls[idx];

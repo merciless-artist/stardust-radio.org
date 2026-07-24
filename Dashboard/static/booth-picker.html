@@ -160,32 +160,84 @@
             50% { opacity: 1; }
         }
 
-        .solo-section { margin-top: 32px; }
-        .solo-section__head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
+        /* ◸──────── ✧ ────────🔹-💠-🔹──────── ◇ ———————◹
+              SECTION: quiet "host from a link" bookmarklet generator
+           ◺──────── ✧ ────────🔹-💠-🔹──────── ◇ ———————◿ */
+        .host-from-link {
+            margin: 28px auto 4px;
+            max-width: 420px;
+            text-align: center;
+            opacity: .72;
         }
-        .solo-new-btn {
-            padding: 8px 16px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, .18);
-            background: #352f5e;
-            color: #d6cffb;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .solo-new-btn:hover { filter: brightness(1.15); }
-        .solo-del {
+
+        .hfl-toggle {
             background: none;
-            border: none;
-            color: rgba(255, 255, 255, .45);
-            font-size: 22px;
+            border: 0;
+            color: var(--text-dim);
+            font: 12px 'Segoe UI', system-ui, sans-serif;
             cursor: pointer;
-            padding: 0 12px;
+            opacity: .8;
+            padding: 4px;
         }
-        .solo-del:hover { color: #ff8a8a; }
+
+        .hfl-toggle:hover { opacity: 1; color: var(--text); }
+
+        .hfl-body {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .hfl-hint {
+            font: 11px 'Segoe UI', system-ui, sans-serif;
+            color: var(--text-muted);
+            margin: 0 0 2px;
+        }
+
+        .hfl-input {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-panel);
+            color: var(--text);
+            font: 13px 'Segoe UI', system-ui, sans-serif;
+        }
+
+        .hfl-input:focus { outline: none; border-color: var(--accent); }
+
+        .hfl-make {
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-panel);
+            color: var(--text);
+            font: 13px 'Segoe UI', system-ui, sans-serif;
+            cursor: pointer;
+        }
+
+        .hfl-make:hover { border-color: var(--accent); }
+        .hfl-make:disabled { opacity: .5; cursor: default; }
+
+        .hfl-drag {
+            display: inline-block;
+            padding: 9px 16px;
+            border-radius: 999px;
+            background: var(--accent);
+            color: #fff;
+            text-decoration: none;
+            font: 700 13px 'Segoe UI', system-ui, sans-serif;
+            cursor: grab;
+        }
+
+        .hfl-error {
+            color: var(--accent);
+            font: 11px 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+        }
+
     </style>
 </head>
 <body>
@@ -197,14 +249,16 @@
             <div class="loading">Loading servers...</div>
         </div>
 
-        <div class="solo-section">
-          <div class="solo-section__head">
-            <h2>No-Server Sessions</h2>
-            <button type="button" class="solo-new-btn" onclick="newSoloSession()">
-              Start a No-Server Session
-            </button>
-          </div>
-          <div id="solo-list" class="solo-list"></div>
+        <div class="host-from-link">
+            <button type="button" class="hfl-toggle" id="hfl-toggle" onclick="hflToggle()">host from a link &#9656;</button>
+            <div class="hfl-body" id="hfl-body" hidden>
+                <p class="hfl-hint">Make a session, then drag the button to your bookmarks bar and click it on your stream tab.</p>
+                <input id="hfl-name" class="hfl-input" placeholder="session name (e.g. Friday LP)" maxlength="80">
+                <button type="button" class="hfl-make" id="hfl-make" onclick="hflMake()">create + get button</button>
+                <p class="hfl-error" id="hfl-error" hidden></p>
+                <a id="hfl-bookmarklet" class="hfl-drag" href="#" hidden onclick="return false;">&#9733; Sync this stream</a>
+                <a id="hfl-open" href="#" target="_blank" rel="noopener" hidden style="display:inline-block;margin-top:6px;font:12px system-ui;color:var(--accent,#7fd);text-decoration:underline;">&#9654; Open this booth</a>
+            </div>
         </div>
     </div>
 
@@ -243,6 +297,96 @@
             document.getElementById('server-list').innerHTML =
                 '<div class="empty">Could not load servers. Is the database running?</div>';
         });
+    /* ◸──────── ✧ ────────🔹-💠-🔹──────── ◇ ———————◹
+          SECTION: quiet "host from a link" bookmarklet generator
+       ◺──────── ✧ ────────🔹-💠-🔹──────── ◇ ———————◿ */
+    function hflToggle() {
+        var body = document.getElementById('hfl-body');
+        var toggle = document.getElementById('hfl-toggle');
+        var opening = body.hidden;
+        body.hidden = !opening;
+        toggle.innerHTML = opening ? 'host from a link &#9662;' : 'host from a link &#9656;';
+    }
+
+    function hflSetError(msg) {
+        var err = document.getElementById('hfl-error');
+        if (!msg) {
+            err.hidden = true;
+            err.textContent = '';
+            return;
+        }
+        err.hidden = false;
+        err.textContent = msg;
+    }
+
+    function hflMake() {
+        var nameInput = document.getElementById('hfl-name');
+        var makeBtn = document.getElementById('hfl-make');
+        var bookmarklet = document.getElementById('hfl-bookmarklet');
+        var name = nameInput.value.trim();
+        if (!name) {
+            hflSetError('Give the session a name first.');
+            return;
+        }
+
+        hflSetError('');
+        bookmarklet.hidden = true;
+        document.getElementById('hfl-open').hidden = true;
+        makeBtn.disabled = true;
+        makeBtn.textContent = 'working...';
+
+        var sessionId = null;
+
+        fetch('/api/solo/sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(session) {
+            if (!session || !session.id) { throw new Error(session && session.error || 'Could not create session.'); }
+            sessionId = session.id;
+            return fetch('/api/solo/sessions/' + sessionId + '/watcher', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: true })
+            });
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(watcher) {
+            if (!watcher || !watcher.ok) { throw new Error('Could not enable syncing for this session.'); }
+            return fetch('/api/solo/watcher-token', { method: 'POST' });
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(tokenResp) {
+            if (!tokenResp || !tokenResp.token) { throw new Error(tokenResp && tokenResp.error || 'Could not get a token.'); }
+
+            var origin = location.origin;
+            var href = "javascript:(function(d){var s=d.createElement('script');s.src='" +
+                origin + "/static/viibr-sync.js#" +
+                encodeURIComponent(tokenResp.token) + "|" +
+                encodeURIComponent(sessionId) + "|" +
+                encodeURIComponent(origin) +
+                "';d.body.appendChild(s);})(document);";
+
+            bookmarklet.href = href;
+            bookmarklet.textContent = '★ Sync "' + name + '" — drag me to bookmarks';
+            bookmarklet.hidden = false;
+
+            var openLink = document.getElementById('hfl-open');
+            openLink.href = '/booth?solo=' + encodeURIComponent(sessionId);
+            openLink.textContent = '▶ Open this booth (' + name + ')';
+            openLink.hidden = false;
+        })
+        .catch(function(err) {
+            hflSetError(err.message || 'Something went wrong.');
+        })
+        .finally(function() {
+            makeBtn.disabled = false;
+            makeBtn.textContent = 'create + get button';
+        });
+    }
+
     function uploadIcon(guildId) {
         var input = document.createElement('input');
         input.type = 'file';
@@ -261,79 +405,6 @@
         };
         input.click();
     }
-    </script>
-
-    <script>
-    function newSoloSession() {
-        var name = prompt('Name this session (e.g. the server you are LPing in):');
-        if (!name) return;
-        fetch('/api/solo/sessions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: name })
-        })
-        .then(function(r){ return r.json(); })
-        .then(function(s){
-            if (s && s.id) window.location.href = '/booth?solo=' + encodeURIComponent(s.id);
-        });
-    }
-
-    function loadSoloSessions() {
-        fetch('/api/solo/sessions')
-            .then(function(r){ return r.json(); })
-            .then(function(list){
-                var el = document.getElementById('solo-list');
-                if (!list || !list.length) {
-                    el.innerHTML = '<div class="empty">No sessions yet. Start one above to run a party with no bot.</div>';
-                    return;
-                }
-                el.innerHTML = list.map(function(s){
-                    var initial = (s.name || '?').charAt(0).toUpperCase();
-                    var icon = s.icon
-                        ? '<img src="/booth/solo_icons/' + escapeAttr(s.icon.split('/').pop()) + '">'
-                        : initial;
-                    return '' +
-                      '<div class="server-card">' +
-                        '<div class="server-icon" onclick="event.preventDefault();event.stopPropagation();uploadSoloIcon(\'' + s.id + '\')">' + icon + '</div>' +
-                        '<a href="/booth?solo=' + encodeURIComponent(s.id) + '" style="display:flex;align-items:center;gap:16px;flex:1;text-decoration:none;color:inherit;">' +
-                          '<div class="server-info">' +
-                            '<div class="server-name">' + escapeText(s.name) + '</div>' +
-                            '<div class="server-meta">' + (s.song_count || 0) + ' songs · no bot</div>' +
-                          '</div>' +
-                          '<span class="server-arrow">&#8594;</span>' +
-                        '</a>' +
-                        '<button class="solo-del" title="Delete session" onclick="event.preventDefault();event.stopPropagation();deleteSoloSession(\'' + s.id + '\',\'' + escapeAttr(s.name) + '\')">&times;</button>' +
-                      '</div>';
-                }).join('');
-            })
-            .catch(function(){
-                document.getElementById('solo-list').innerHTML =
-                  '<div class="empty">Could not load sessions.</div>';
-            });
-    }
-
-    function uploadSoloIcon(sid) {
-        var input = document.createElement('input');
-        input.type = 'file'; input.accept = 'image/*';
-        input.onchange = function() {
-            var file = input.files[0]; if (!file) return;
-            var form = new FormData(); form.append('icon', file);
-            fetch('/api/solo/sessions/' + sid + '/icon', { method: 'POST', body: form })
-                .then(function(r){ if (r.ok) loadSoloSessions(); });
-        };
-        input.click();
-    }
-
-    function deleteSoloSession(sid, name) {
-        if (!confirm('Delete "' + name + '"? This removes its queue.')) return;
-        fetch('/api/solo/sessions/' + sid, { method: 'DELETE' })
-            .then(function(r){ if (r.ok) loadSoloSessions(); });
-    }
-
-    function escapeText(s){ var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
-    function escapeAttr(s){ return (s||'').replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
-
-    loadSoloSessions();
     </script>
 </body>
 </html>

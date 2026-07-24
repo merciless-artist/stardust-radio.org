@@ -330,7 +330,8 @@ def booth_auth_callback() -> Response:
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
             return _login_error(
-                "You need to join the configured Discord server first."
+                "You need to join the Stardust Radio Dashboard support "
+                "server first: #"
             )
         return _login_error(
             _discord_http_error(exc, "Couldn't read your roles from Discord")
@@ -1044,14 +1045,32 @@ def booth_guild_icon(filename: str) -> Response:
 @app.route("/api/guilds")
 @require_auth
 def booth_guilds() -> Response:
-    """List every guild that has tracked links — for the booth's server picker."""
+    """List every guild that is either currently being tracked (!starttracking
+    active) or has any historical tracked links — for the booth's server picker.
+
+    A guild appears the moment `!starttracking` runs (via `tracking_channels`),
+    without needing a first song to have been posted.
+    """
     conn = _booth_db()
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT guild_id, COUNT(*) AS song_count,
-                       MAX(tracked_at) AS last_active
-                FROM tracked_links
+                SELECT guild_id,
+                       SUM(song_count) AS song_count,
+                       MAX(last_active) AS last_active
+                FROM (
+                    SELECT guild_id,
+                           COUNT(*) AS song_count,
+                           MAX(tracked_at) AS last_active
+                    FROM tracked_links
+                    GROUP BY guild_id
+                    UNION ALL
+                    SELECT guild_id,
+                           0 AS song_count,
+                           MAX(started_at) AS last_active
+                    FROM tracking_channels
+                    GROUP BY guild_id
+                ) AS combined
                 GROUP BY guild_id
                 ORDER BY last_active DESC
             """)
@@ -1063,6 +1082,7 @@ def booth_guilds() -> Response:
     for row in rows:
         gid_str = str(row["guild_id"])
         row["guild_id"]   = gid_str
+        row["song_count"] = int(row["song_count"] or 0)  # SUM() returns Decimal
         row["name"]       = _resolve_guild_name(gid_str)
         row["last_active"] = row["last_active"].isoformat() if row["last_active"] else None
         icon_path = icons_dir / f"{gid_str}.png"
@@ -1371,9 +1391,7 @@ def solo_queue_add(sid: str) -> Response:
                                  "direct audio file"}), 400
     explicit = (data.get("username") or "").strip()
     username = explicit or _scrape_author_name(url, platform) or "Host"
-    used = no_server_store.used_emojis(sid)
-    pool = [e for e in _DASHBOARD_SONG_EMOJIS if e not in used]
-    emoji = random.choice(pool or list(_DASHBOARD_SONG_EMOJIS))
+    emoji = _chosen_emoji(data.get("emoji"), no_server_store.used_emojis(sid))
     song = no_server_store.add_song(sid, url, platform, emoji, username, _now_iso())
     return jsonify({"ok": True, **song})
 
@@ -1466,6 +1484,40 @@ def solo_watcher_token_regen() -> Response:
 #       SECTION: Watcher-facing routes (token auth, used by dj-watcher.py)
 # ◺──────── ✧ ────────🔹-💠-🔹 ──────── ◇ ———————◿
 
+# Only this exact origin may call the watcher routes from a browser tab.
+_WATCHER_CORS_ORIGIN = "https://viibrmusic.com"
+
+
+def _add_watcher_cors(resp: "Response", origin: str) -> "Response":
+    """Attach CORS headers so Myra's logged-in VIIBR tab can call the watcher
+    routes. Token auth is unchanged; this only lets the browser make the call."""
+    resp.headers["Access-Control-Allow-Origin"] = origin
+    resp.headers["Vary"] = "Origin"
+    resp.headers["Access-Control-Allow-Headers"] = "X-Watcher-Token, Content-Type"
+    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    resp.headers["Access-Control-Max-Age"] = "600"
+    return resp
+
+
+@app.after_request
+def _watcher_cors(resp: "Response") -> "Response":
+    origin = request.headers.get("Origin", "")
+    if origin == _WATCHER_CORS_ORIGIN and request.path.startswith("/api/watcher/"):
+        _add_watcher_cors(resp, origin)
+    return resp
+
+
+@app.before_request
+def _watcher_cors_preflight():
+    if (
+        request.method == "OPTIONS"
+        and request.path.startswith("/api/watcher/")
+        and request.headers.get("Origin", "") == _WATCHER_CORS_ORIGIN
+    ):
+        # Empty 200; the after_request hook adds the CORS headers.
+        return ("", 200)
+
+
 def _watcher_user() -> dict | None:
     """Resolve the X-Watcher-Token header to its owner, or None."""
     import watcher_tokens
@@ -1534,6 +1586,21 @@ _DASHBOARD_SONG_EMOJIS: tuple[str, ...] = (
     "🍒", "🍭", "🌸", "🌺", "🍄", "🪐", "🗡️", "🛸", "🎃", "🦄",
     "🐝", "🦅", "🐬", "🦩", "🌵", "🍉", "🧿", "💀", "🤖", "👾",
 )
+
+
+def _chosen_emoji(supplied: str | None, used: set) -> str:
+    """Pick the emoji shown beside a manually-added song.
+
+    Honors a host-supplied emoji (e.g. from pasting "🟥 https://..." to mirror
+    a Discord contest's per-song emoji) — accepted only if it actually contains
+    a non-ASCII codepoint, and capped so a stray string can't bloat the field.
+    Otherwise falls back to a random unused emoji from the pool.
+    """
+    supplied = (supplied or "").strip()
+    if supplied and any(ord(c) > 127 for c in supplied):
+        return supplied[:32]
+    pool = [e for e in _DASHBOARD_SONG_EMOJIS if e not in used]
+    return random.choice(pool or list(_DASHBOARD_SONG_EMOJIS))
 
 
 def _ordered_queue_ids(cur, guild_id: str) -> list[int]:
@@ -1771,16 +1838,15 @@ def booth_queue_add() -> Response:
             tc_row = cur.fetchone()
             channel_id = tc_row["channel_id"] if tc_row else 0
 
-            # Pick an unused emoji per guild so manual adds visually
-            # blend in with bot-tracked entries.
+            # Honor a host-supplied emoji prefix, else pick an unused one per
+            # guild so manual adds visually blend in with bot-tracked entries.
             cur.execute(
                 "SELECT emoji FROM tracked_links "
                 "WHERE guild_id = %s AND emoji IS NOT NULL",
                 (guild_id,),
             )
             used = {r["emoji"] for r in cur.fetchall()}
-            available = [e for e in _DASHBOARD_SONG_EMOJIS if e not in used]
-            emoji = random.choice(available or list(_DASHBOARD_SONG_EMOJIS))
+            emoji = _chosen_emoji(data.get("emoji"), used)
 
             cur.execute(
                 """

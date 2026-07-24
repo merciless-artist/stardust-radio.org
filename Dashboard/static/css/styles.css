@@ -719,6 +719,26 @@ body.is-playing .info-stack {
 body.is-playing .brand-footer__logo--silver { opacity: 0; }
 body.is-playing .brand-footer__logo--gold   { opacity: 1; }
 
+/* Support-server text link that sits ABOVE the main Discord logo */
+.brand-footer__support {
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--c-grey-soft, rgba(220, 220, 220, 0.75));
+  text-decoration: none;
+  border-bottom: 1px solid rgba(240, 212, 138, 0.28);
+  padding-bottom: 2px;
+  opacity: 0.9;
+  transition: color 0.25s ease, border-color 0.25s ease, opacity 0.25s ease;
+}
+.brand-footer__support:hover,
+.brand-footer__support:focus-visible {
+  color: var(--c-gold, #f0d48a);
+  border-bottom-color: var(--c-gold, #f0d48a);
+  opacity: 1;
+  outline: none;
+}
+
 /* Small text row beneath the Discord logo — Privacy / Terms */
 .brand-footer__legal {
   display: flex;

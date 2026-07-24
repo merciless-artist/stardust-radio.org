@@ -103,17 +103,7 @@
         <p class="title-pill__artist" id="track-artist">&nbsp;</p>
       </div>
 
-      <!-- Marquee — displays the scrolling lyrics karaoke-style.
-           When the song has no lyrics, the marquee just shows the empty
-           bulb frame (no fallback glyph).                               -->
-      <div class="info-card">
-        <img class="info-card__frame" src="/static/assets/frame-nowplaying.png" alt="" aria-hidden="true" />
-        <div class="info-card__nowplaying">
-          <div id="lyrics-overlay" class="info-card__lyrics" aria-live="polite" aria-label="Scrolling lyrics" hidden>
-            <div class="info-card__lyrics-track" id="lyrics-track"></div>
-          </div>
-        </div>
-      </div>
+      <!-- (removed: lyrics marquee — not used on this station) -->
 
       <!-- Listening banner + Recent tracks toggle, side by side -->
       <div class="info-row">
@@ -148,6 +138,9 @@
   <!--    SECTION: Footer — Discord logo                 -->
   <!-- ⪧──•───✿⪦──────⪧•────────⪧✿⪦ ◯ ⋆ ◯ ✿⪦────⪧•───•───✿⪦────•⪦ -->
   <footer class="brand-footer" role="contentinfo">
+    <a class="brand-footer__support" href="#" rel="noopener noreferrer" target="_blank">
+      Join the community
+    </a>
     <a class="brand-footer__link" href="#" rel="noopener noreferrer" target="_blank" aria-label="Open the Discord community">
       <img class="brand-footer__logo brand-footer__logo--silver" src="/static/assets/logo-silver.png" alt="Discord" />
       <img class="brand-footer__logo brand-footer__logo--gold"   src="/static/assets/logo-gold.png"   alt="" aria-hidden="true" />
