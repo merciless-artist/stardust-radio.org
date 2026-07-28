@@ -5,15 +5,17 @@ https://discord.gg/uezE5aKsbR
 
 Effective date: 06/27/2026
 
-Operator: “StudioAI” / "Stardust Radio"] ("we", "us"). 
-Contact: studio.ai.stardust.radio@gmail.com
-Discord Server: https://discord.gg/4HTSRMYmB9 
-Discord Contact: https://discord.com/users/966507927756234823
-a_cat <@966507927756234823> 
+Operator: “StudioAI” / "Stardust Radio" / "Stardust Records" ("we", "us").   
+
+Contact: studio.ai.stardust.radio@gmail.com  
+
+Discord Server: https://discord.gg/4HTSRMYmB9  
+
+Discord Contact: https://discord.com/users/966507927756234823 | thereal_a_cat <@966507927756234823> 
 
 Stardust Radio is a community listening-party tool: a web dashboard for hosting and queueing music during listening parties with a helper bot that is invited to the server. Invite the discord helper bot with this link: 
 
-temporarily collected
+[Stardust Radio Helper Bot](https://discord.com/oauth2/authorize?client_id=1503047790496977067)
 
 Discord identifiers: your Discord user ID, username/display name, and the server (guild) and channel ID where the bot is active.
 
