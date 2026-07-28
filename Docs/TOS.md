@@ -301,9 +301,11 @@ Contact for all legal matters (DMCA, takedowns, questions about these Terms):
 
 
 studio.ai.stardust.radio@gmail.com
-myraladiosa@myraladiosa.com
 
 
 
-Please be patient — this inbox is monitored intermittently.
+Please be patient — this inbox is monitored intermittently. You will have better luck using the support server:
+
+
+https://discord.gg/uezE5aKsbR
 
