@@ -21,6 +21,7 @@ import os
 from datetime import datetime, timezone
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from utils import suno_fetch
@@ -43,6 +44,9 @@ AGREEMENT_TEXT = (
     "and you grant Stardust Radio permission to broadcast it. Your submission "
     "and this agreement are logged. A host reviews every submission before it "
     "airs.\n\n"
+    "**Heads up:** approvals happen manually. Depending on whether a host is "
+    "around (and awake), it can take anywhere from a few minutes to a day or "
+    "two before your song makes it onto the station. Thanks for being patient.\n\n"
     "Click \"I Agree & Submit\" to send it for review."
 )
 
@@ -180,6 +184,14 @@ class RadioSubmit(commands.Cog):
     def db(self):
         return self.bot.db
 
+    # Trusted-submitter commands. Managed by admins + the RADIO MOD role;
+    # a trusted user's submissions skip review and go straight to the station.
+    trust = app_commands.Group(
+        name="radiotrust",
+        description="Manage trusted submitters (their songs skip review)",
+        guild_only=True,
+    )
+
     async def cog_load(self):
         await self.db.execute("""
             CREATE TABLE IF NOT EXISTS radio_submissions (
@@ -195,6 +207,13 @@ class RadioSubmit(commands.Cog):
                 decided_at TIMESTAMP NULL,
                 mod_message_id BIGINT DEFAULT NULL,
                 INDEX idx_status (status)
+            )
+        """)
+        await self.db.execute("""
+            CREATE TABLE IF NOT EXISTS radio_trusted_users (
+                user_id BIGINT PRIMARY KEY,
+                added_by BIGINT,
+                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         # Re-bind the Approve/Reject buttons so they work after a restart.
@@ -230,6 +249,12 @@ class RadioSubmit(commands.Cog):
              interaction.user.display_name, link),
         )
 
+        # Trusted submitters skip review — upload straight to the station
+        # (the consent click above is still logged).
+        if await self._is_trusted(interaction.user.id):
+            await self._auto_approve(interaction, sid, link)
+            return
+
         channel = self.bot.get_channel(SUBMIT_CHANNEL_ID)
         if channel is None:
             try:
@@ -237,9 +262,15 @@ class RadioSubmit(commands.Cog):
             except Exception:
                 channel = None
         if channel is None:
+            # Self-heal: a submission that never reached the review channel
+            # must not linger as 'pending' (it would block the user's next
+            # try). Delete the row so a retry starts clean.
+            await self.db.execute(
+                "DELETE FROM radio_submissions WHERE id = %s", (sid,))
             await interaction.followup.send(
-                "Your song was saved, but I can't see the review channel — "
-                "a host needs to add me to that server/channel.")
+                "I can't see the review channel, so your submission wasn't "
+                "saved. Tell a host to add me to that server/channel, then "
+                "submit again.")
             return
 
         try:
@@ -251,9 +282,13 @@ class RadioSubmit(commands.Cog):
                 view=_mod_view(sid),
             )
         except discord.Forbidden:
+            # Same self-heal as above — failed post means no pending row.
+            await self.db.execute(
+                "DELETE FROM radio_submissions WHERE id = %s", (sid,))
             await interaction.followup.send(
-                "Your song was saved, but I don't have permission to post in the "
-                "review channel. Tell a host to give me Send Messages there.")
+                "I don't have permission to post in the review channel, so "
+                "your submission wasn't saved. Tell a host to give me Send "
+                "Messages there, then submit again.")
             return
 
         await self.db.execute(
@@ -261,19 +296,16 @@ class RadioSubmit(commands.Cog):
             (msg.id, sid))
 
         await interaction.followup.send(
-            "Submitted for review. If a host approves it, it'll play on Stardust Radio. Thanks!")
+            "・♪ Submitted for review. If a host approves it, it'll play on Stardust Radio.\n"
+            "This can take anywhere from a few minutes to a day or two — depends on "
+            "when a host is around to look at it. You'll get a DM either way. Thanks!"
+        )
 
     # ── Approve / Reject (admins only) ───────────────────────────────────────
     async def handle_decision(self, interaction: discord.Interaction, sid: int, approve: bool):
         member = interaction.user
-        perms = getattr(member, "guild_permissions", None)
-        is_admin = bool(perms and perms.administrator)
-        role_ids = [getattr(r, "id", None) for r in getattr(member, "roles", [])]
-        has_role = bool(APPROVER_ROLE_ID) and APPROVER_ROLE_ID in role_ids
-        print(f"[radiosub] decision sid={sid} approve={approve} by={member} "
-              f"admin={is_admin} has_role={has_role} approver_role={APPROVER_ROLE_ID} "
-              f"member_roles={role_ids}", flush=True)
-        if not (is_admin or has_role):
+        print(f"[radiosub] decision sid={sid} approve={approve} by={member}", flush=True)
+        if not self._can_review(member):
             await interaction.response.send_message(
                 "You don't have permission to review submissions.", ephemeral=True)
             return
@@ -304,29 +336,14 @@ class RadioSubmit(commands.Cog):
                            f"Song: {row['url']}")
             return
 
-        # Approve: download -> upload -> add to playlist.
-        try:
-            song = await suno_fetch.fetch_and_anonymize(row["url"])
-            title = await _suno_title(row["url"])
-            await _azuracast_add(song.mp3_bytes, f"sub_{song.suno_uuid}.mp3",
-                                 title=title, artist=row.get("username"))
-        except suno_fetch.SunoFetchError as e:
-            print(f"[radiosub] fetch failed sid={sid}: {e.debug}", flush=True)
+        # Approve: download -> upload -> add to playlist (shared with the
+        # trusted auto-approve path).
+        ok, err = await self._upload_approved(
+            sid, row["url"], row.get("username"), interaction.user.id)
+        if not ok:
             await interaction.followup.send(
-                f"Couldn't fetch that song: {e.user_message}", ephemeral=True)
+                f"Couldn't add that to the radio: {err}", ephemeral=True)
             return
-        except Exception as e:
-            import traceback
-            print(f"[radiosub] approve failed sid={sid}: {e!r}", flush=True)
-            traceback.print_exc()
-            await interaction.followup.send(
-                f"Upload to the radio failed: {e}", ephemeral=True)
-            return
-
-        await self.db.execute(
-            """UPDATE radio_submissions
-               SET status='approved', suno_uuid=%s, decided_by=%s, decided_at=%s WHERE id=%s""",
-            (song.suno_uuid, interaction.user.id, decided_at, sid))
         await self._finish(interaction,
                            f"Approved by {interaction.user.display_name} — now on Stardust Radio.")
         await self._dm(row["user_id"],
@@ -351,6 +368,129 @@ class RadioSubmit(commands.Cog):
             await interaction.message.edit(content=base + "\nStatus: " + note, view=None)
         except Exception:
             pass
+
+    # ◸──────── ✧ ──────── ◇ ———————🔹-💠-🔹——————— ◇ ──────── ✧ ────────◹
+    #       SECTION: Trusted submitters (skip review) + shared upload
+    # ◺──────── ✧ ──────── ◇ ———————🔹-💠-🔹——————— ◇ ──────── ✧ ────────◿
+
+    def _can_review(self, member) -> bool:
+        """True if the member may review submissions / manage the trusted list
+        (a server admin, or someone with the RADIO MOD role)."""
+        perms = getattr(member, "guild_permissions", None)
+        is_admin = bool(perms and perms.administrator)
+        role_ids = [getattr(r, "id", None) for r in getattr(member, "roles", [])]
+        has_role = bool(APPROVER_ROLE_ID) and APPROVER_ROLE_ID in role_ids
+        return is_admin or has_role
+
+    async def _is_trusted(self, user_id: int) -> bool:
+        return bool(await self.db.fetchone(
+            "SELECT 1 FROM radio_trusted_users WHERE user_id = %s", (user_id,)))
+
+    async def _submit_channel(self):
+        ch = self.bot.get_channel(SUBMIT_CHANNEL_ID)
+        if ch is None:
+            try:
+                ch = await self.bot.fetch_channel(SUBMIT_CHANNEL_ID)
+            except Exception:
+                ch = None
+        return ch
+
+    async def _upload_approved(self, sid, url, username, decided_by):
+        """Download + anonymize + upload to AzuraCast, then mark the row
+        approved. Shared by the Approve button and the trusted auto-approve.
+        Returns (ok, error_message_or_None)."""
+        try:
+            song = await suno_fetch.fetch_and_anonymize(url)
+            title = await _suno_title(url)
+            await _azuracast_add(song.mp3_bytes, f"sub_{song.suno_uuid}.mp3",
+                                 title=title, artist=username)
+        except suno_fetch.SunoFetchError as e:
+            print(f"[radiosub] fetch failed sid={sid}: {e.debug}", flush=True)
+            return False, e.user_message
+        except Exception as e:
+            import traceback
+            print(f"[radiosub] upload failed sid={sid}: {e!r}", flush=True)
+            traceback.print_exc()
+            return False, str(e)
+        decided_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        await self.db.execute(
+            "UPDATE radio_submissions SET status='approved', suno_uuid=%s, "
+            "decided_by=%s, decided_at=%s WHERE id=%s",
+            (song.suno_uuid, decided_by, decided_at, sid))
+        return True, None
+
+    async def _auto_approve(self, interaction: discord.Interaction, sid: int, link: str):
+        """Trusted-submitter path: upload right away, no review — but still
+        post a record in the submit channel so hosts can see who added what."""
+        ok, err = await self._upload_approved(
+            sid, link, interaction.user.display_name, interaction.user.id)
+        if not ok:
+            await self.db.execute("DELETE FROM radio_submissions WHERE id = %s", (sid,))
+            await interaction.followup.send(
+                "You're a trusted submitter, but the upload to the radio failed: "
+                f"{err}. Give it another try in a bit.")
+            return
+        await interaction.followup.send(
+            "・♪ ──────── Stardust Radio ──────── ♪・\n"
+            "You're a trusted submitter, so your song skipped review and is "
+            "already live on Stardust Radio. Thanks!")
+        channel = await self._submit_channel()
+        if channel is not None:
+            try:
+                await channel.send(
+                    "・♪ ──────── Auto-Approved (Trusted) ──────── ♪・\n"
+                    f"From: {interaction.user.mention}\n"
+                    f"Song: {link}\n"
+                    "Skipped review — this submitter is on the trusted list.")
+            except Exception:
+                pass
+
+    @trust.command(name="add", description="Trust a submitter — their songs skip review")
+    @app_commands.describe(user="Who to trust (pick them, or paste their Discord ID)")
+    async def trust_add(self, interaction: discord.Interaction, user: discord.User):
+        if not self._can_review(interaction.user):
+            await interaction.response.send_message(
+                "You don't have permission to manage the trusted list.", ephemeral=True)
+            return
+        await self.db.execute(
+            "INSERT INTO radio_trusted_users (user_id, added_by) VALUES (%s, %s) "
+            "ON DUPLICATE KEY UPDATE added_by = VALUES(added_by)",
+            (user.id, interaction.user.id))
+        await interaction.response.send_message(
+            f"{user.mention} is now a trusted submitter — their radio submissions "
+            "skip review and go straight to the station.")
+
+    @trust.command(name="remove", description="Remove a trusted submitter")
+    @app_commands.describe(user="Who to remove (pick them, or paste their Discord ID)")
+    async def trust_remove(self, interaction: discord.Interaction, user: discord.User):
+        if not self._can_review(interaction.user):
+            await interaction.response.send_message(
+                "You don't have permission to manage the trusted list.", ephemeral=True)
+            return
+        removed = await self.db.execute(
+            "DELETE FROM radio_trusted_users WHERE user_id = %s", (user.id,))
+        if removed:
+            await interaction.response.send_message(
+                f"{user.mention} removed — their submissions need review again.")
+        else:
+            await interaction.response.send_message(
+                f"{user.mention} wasn't on the trusted list.", ephemeral=True)
+
+    @trust.command(name="list", description="Show the trusted submitters")
+    async def trust_list(self, interaction: discord.Interaction):
+        if not self._can_review(interaction.user):
+            await interaction.response.send_message(
+                "You don't have permission to view the trusted list.", ephemeral=True)
+            return
+        rows = await self.db.fetchall_dict(
+            "SELECT user_id FROM radio_trusted_users ORDER BY added_at")
+        if not rows:
+            await interaction.response.send_message(
+                "No trusted submitters yet. Add one with /radiotrust add.", ephemeral=True)
+            return
+        listing = "\n".join(f"・<@{r['user_id']}>" for r in rows)
+        await interaction.response.send_message(
+            "・♪ ──────── Trusted Submitters ──────── ♪・\n" + listing, ephemeral=True)
 
 
 async def setup(bot):

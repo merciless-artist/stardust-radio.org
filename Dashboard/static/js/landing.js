@@ -1,4 +1,4 @@
-﻿// ╭─────────────────────────────────────────────────────── ♱ · 𓆩🤍𓆪 · ♱ ─╮
+// ╭─────────────────────────────────────────────────────── ♱ · 𓆩🤍𓆪 · ♱ ─╮
 //      Stardust Radio — Landing Page
 //      Fetches the station list, then for each station hits AzuraCast's
 //      nowplaying endpoint to find what's currently broadcasting and
@@ -6,7 +6,7 @@
 //      every 30 seconds so the page feels alive.
 // ╰─ ♱ · 𓆩🤍𓆪 · ♱ ───────────────────────────────────────────────────────╯
 
-const CFG = window.RADIO_CONFIG ?? {};
+const CFG = window.STUDIOAI_CONFIG ?? {};
 const REFRESH_INTERVAL_MS = 30_000;
 const PLACEHOLDER_ART = '/static/assets/placeholder-art.svg';
 

@@ -1,7 +1,7 @@
-﻿// ╭─────────────────────────────────────────────────────── ♱ · 𓆩🤍𓆪 · ♱ ─╮
+// ╭─────────────────────────────────────────────────────── ♱ · 𓆩🤍𓆪 · ♱ ─╮
 //      SECTION: Config + DOM refs (Stardust Radio listener)
 // ╰─ ♱ · 𓆩🤍𓆪 · ♱ ───────────────────────────────────────────────────────╯
-const CFG = window.RADIO_CONFIG ?? {};
+const CFG = window.STUDIOAI_CONFIG ?? {};
 const POLL_INTERVAL_MS = 8_000;
 const PLACEHOLDER_ART = '/static/assets/placeholder-art.svg';
 

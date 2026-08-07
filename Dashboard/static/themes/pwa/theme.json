@@ -1,0 +1,8 @@
+{
+  "name": "Phil & Wavey Review Show featuring a_cat",
+  "description": "Live on Twitch — guest hosting on Stardust Radio.",
+  "accent_color": "#9146ff",
+  "accent_color_soft": "rgba(145, 70, 255, 0.28)",
+  "source_type": "twitch",
+  "twitch_channel": "philfinemusic"
+}

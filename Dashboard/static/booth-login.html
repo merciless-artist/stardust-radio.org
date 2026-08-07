@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -76,13 +76,13 @@
   </main>
 
   <footer class="landing-footer" role="contentinfo">
-    <a class="landing-footer__link" href="#" rel="noopener noreferrer" target="_blank">
-      Join the community
+    <a class="landing-footer__link" href="https://discord.gg/StudioAI" rel="noopener noreferrer" target="_blank">
+      Join the StudioAI Discord
     </a>
     <nav class="landing-footer__legal" aria-label="Legal">
-      <a href="/privacy" rel="noopener noreferrer" target="_blank">Privacy Policy</a>
+      <a href="https://studioaiforums.com/privacy-policy" rel="noopener noreferrer" target="_blank">Privacy Policy</a>
       <span class="landing-footer__legal-sep" aria-hidden="true">·</span>
-      <a href="/terms" rel="noopener noreferrer" target="_blank">Terms of Service</a>
+      <a href="https://studioaiforums.com/termsofservice" rel="noopener noreferrer" target="_blank">Terms of Service</a>
     </nav>
   </footer>
 
@@ -93,7 +93,7 @@
       if (!err) return;
       const el = document.getElementById('auth-error');
 
-      const INVITE = '#';
+      const INVITE = 'https://discord.gg/BpsFdRkB7u';
       // Render the message as plain text (never inject the raw ?err= value as
       // HTML). Strip any raw invite URL out — we show it as a real button.
       el.textContent = err.split(INVITE).join('').replace(/[:\s]+$/, '').trim();

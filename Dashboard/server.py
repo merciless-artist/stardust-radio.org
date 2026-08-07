@@ -1,4 +1,4 @@
-﻿"""
+"""
 Stardust Radio — listener-facing site server.
 
 Serves a multi-channel listener experience:
@@ -133,7 +133,13 @@ def landing() -> Response:
     Shows the wordmark, tagline, currently-broadcasting stations, and a
     primary "Tune in" CTA into the channel picker. Hosts have a smaller
     sign-in link beneath that takes them to the booth auth flow.
+
+    When Discord opens this as an Activity it tags the iframe with a
+    `frame_id` query param — in that case serve the Activity app instead of
+    the marketing landing page, so the root URL mapping just works.
     """
+    if request.args.get("frame_id"):
+        return send_from_directory(BASE_DIR / "static" / "activity", "index.html")
     return send_from_directory(app.static_folder, "landing.html")
 
 
@@ -141,6 +147,95 @@ def landing() -> Response:
 def picker() -> Response:
     """Channel picker — full directory of all stations on the platform."""
     return send_from_directory(app.static_folder, "picker.html")
+
+
+@app.route("/.well-known/discord")
+def discord_domain_verification() -> Response:
+    """Domain-ownership proof for the Discord Activity / app.
+
+    Proves we own stardust-radio.org (which also covers the
+    radio.stardust-radio.org subdomain) so the Activity's URL mappings can use
+    the domain. Served as exact plain text — no trailing newline.
+    """
+    return Response(
+        "dh=e20f5fe0f0a4803e6a963454ba55cd13439a622e",
+        mimetype="text/plain",
+    )
+
+
+# ◸──────── ✧ ──────── ◇ ── Discord Activity (embedded radio app) ── ◇ ──────── ✧ ────────◹
+#   A web app launched inside a Discord voice channel: plays Stardust Radio live,
+#   shows now-playing + who's listening, with a shared "pass-the-aux" station
+#   picker. Served at /activity; talks to these routes through Discord's proxy.
+# ◺──────── ✧ ──────── ◇ ─────────────────────────────────────── ◇ ──────── ✧ ────────◿
+
+ACTIVITY_CLIENT_ID     = os.getenv("ACTIVITY_CLIENT_ID", "")
+ACTIVITY_CLIENT_SECRET = os.getenv("ACTIVITY_CLIENT_SECRET", "")
+ACTIVITY_STATIONS = ("main", "kiki", "blue_hermit", "syna", "fades2red")
+
+# Shared "pass-the-aux" state: {instance_id: shortcode}. In-memory is fine —
+# single Flask process; a restart just makes clients re-sync to 'main'.
+_activity_station: dict[str, str] = {}
+
+
+@app.route("/activity")
+def activity_app() -> Response:
+    """Serve the Discord Activity web app."""
+    return send_from_directory(BASE_DIR / "static" / "activity", "index.html")
+
+
+@app.route("/activity/config.js")
+def activity_config() -> Response:
+    """Expose the (public) Activity client id to the page."""
+    return Response(
+        f'window.ACTIVITY_CLIENT_ID="{ACTIVITY_CLIENT_ID}";',
+        mimetype="text/javascript",
+    )
+
+
+def _activity_exchange_code(code: str) -> dict:
+    """Exchange an OAuth code for an access token (server-side; holds the secret)."""
+    payload = urllib.parse.urlencode({
+        "client_id":     ACTIVITY_CLIENT_ID,
+        "client_secret": ACTIVITY_CLIENT_SECRET,
+        "grant_type":    "authorization_code",
+        "code":          code,
+    }).encode()
+    req = urllib.request.Request(
+        "https://discord.com/api/oauth2/token", data=payload,
+        headers={"Content-Type": "application/x-www-form-urlencoded",
+                 "User-Agent": DISCORD_USER_AGENT},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=8) as resp:
+        return json.loads(resp.read())
+
+
+@app.route("/api/activity/token", methods=["POST"])
+def activity_token() -> Response:
+    """Client sends the OAuth code; we exchange it for an access token."""
+    data = request.get_json(silent=True) or {}
+    code = (data.get("code") or "").strip()
+    if not code:
+        return jsonify({"error": "code required"}), 400
+    try:
+        tok = _activity_exchange_code(code)
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"error": f"token exchange failed: {exc}"}), 502
+    return jsonify({"access_token": tok.get("access_token")})
+
+
+@app.route("/api/activity/instance/<instance_id>/station", methods=["GET", "POST"])
+def activity_station(instance_id: str) -> Response:
+    """Shared station for an Activity instance (pass the aux)."""
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        station = (data.get("station") or "").strip()
+        if station not in ACTIVITY_STATIONS:
+            return jsonify({"error": "unknown station"}), 400
+        _activity_station[instance_id] = station
+        return jsonify({"ok": True, "station": station})
+    return jsonify({"station": _activity_station.get(instance_id, "main")})
 
 
 @app.route("/booth/login")
@@ -331,7 +426,7 @@ def booth_auth_callback() -> Response:
         if exc.code == 404:
             return _login_error(
                 "You need to join the Stardust Radio Dashboard support "
-                "server first: #"
+                "server first: https://discord.gg/BpsFdRkB7u"
             )
         return _login_error(
             _discord_http_error(exc, "Couldn't read your roles from Discord")
@@ -372,14 +467,14 @@ def channel_page(channel: str) -> Response:
 
 
 # ◸──────── ♪ ──────── ◇ ─────── 📻 ─────── ◇ ──────── ♪ ────────◹
-#       SECTION: Config injection (page reads window.RADIO_CONFIG)
+#       SECTION: Config injection (page reads window.STUDIOAI_CONFIG)
 # ◺──────── ♪ ──────── ◇ ─────── 📻 ─────── ◇ ──────── ♪ ────────◿
 
 @app.route("/api/config.js")
 def runtime_config() -> Response:
     """Inject runtime config as a JS module the page reads."""
     body = (
-        "window.RADIO_CONFIG = Object.freeze({\n"
+        "window.STUDIOAI_CONFIG = Object.freeze({\n"
         f"  stationName: {STATION_NAME!r},\n"
         f"  accentColor: {ACCENT_COLOR!r},\n"
         f"  azuracastBase: {AZURACAST_BASE!r},\n"
@@ -1450,126 +1545,6 @@ def solo_clear(sid: str) -> Response:
     if not no_server_store.clear_queue(sid):
         return jsonify({"error": "session not found"}), 404
     return jsonify({"ok": True})
-
-
-@app.route("/api/solo/sessions/<sid>/watcher", methods=["POST"])
-@require_auth
-def solo_set_watcher(sid: str) -> Response:
-    if not no_server_store.owns(sid, _solo_user()):
-        return jsonify({"error": "session not found"}), 404
-    data = request.get_json(silent=True) or {}
-    no_server_store.set_watcher_enabled(sid, bool(data.get("enabled")))
-    return jsonify({"ok": True, "enabled": bool(data.get("enabled"))})
-
-
-@app.route("/api/solo/watcher-token", methods=["POST"])
-@require_auth
-def solo_watcher_token() -> Response:
-    import watcher_tokens
-    uid = _solo_user() or ""
-    name = session.get("dj_username", "")
-    return jsonify({"token": watcher_tokens.get_or_create(uid, name, _now_iso())})
-
-
-@app.route("/api/solo/watcher-token/regenerate", methods=["POST"])
-@require_auth
-def solo_watcher_token_regen() -> Response:
-    import watcher_tokens
-    uid = _solo_user() or ""
-    name = session.get("dj_username", "")
-    return jsonify({"token": watcher_tokens.regenerate(uid, name, _now_iso())})
-
-
-# ◸──────── ✧ ────────🔹-💠-🔹 ──────── ◇ ———————◹
-#       SECTION: Watcher-facing routes (token auth, used by dj-watcher.py)
-# ◺──────── ✧ ────────🔹-💠-🔹 ──────── ◇ ———————◿
-
-# Only this exact origin may call the watcher routes from a browser tab.
-_WATCHER_CORS_ORIGIN = "https://viibrmusic.com"
-
-
-def _add_watcher_cors(resp: "Response", origin: str) -> "Response":
-    """Attach CORS headers so Myra's logged-in VIIBR tab can call the watcher
-    routes. Token auth is unchanged; this only lets the browser make the call."""
-    resp.headers["Access-Control-Allow-Origin"] = origin
-    resp.headers["Vary"] = "Origin"
-    resp.headers["Access-Control-Allow-Headers"] = "X-Watcher-Token, Content-Type"
-    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    resp.headers["Access-Control-Max-Age"] = "600"
-    return resp
-
-
-@app.after_request
-def _watcher_cors(resp: "Response") -> "Response":
-    origin = request.headers.get("Origin", "")
-    if origin == _WATCHER_CORS_ORIGIN and request.path.startswith("/api/watcher/"):
-        _add_watcher_cors(resp, origin)
-    return resp
-
-
-@app.before_request
-def _watcher_cors_preflight():
-    if (
-        request.method == "OPTIONS"
-        and request.path.startswith("/api/watcher/")
-        and request.headers.get("Origin", "") == _WATCHER_CORS_ORIGIN
-    ):
-        # Empty 200; the after_request hook adds the CORS headers.
-        return ("", 200)
-
-
-def _watcher_user() -> dict | None:
-    """Resolve the X-Watcher-Token header to its owner, or None."""
-    import watcher_tokens
-    return watcher_tokens.resolve(request.headers.get("X-Watcher-Token", ""))
-
-
-@app.route("/api/watcher/sessions", methods=["GET"])
-def watcher_sessions() -> Response:
-    user = _watcher_user()
-    if not user:
-        return jsonify({"error": "bad or missing watcher token"}), 401
-    sessions = no_server_store.list_sessions(owner_id=user["user_id"])
-    return jsonify([
-        {"id": s["id"], "name": s["name"], "watcher_enabled": s["watcher_enabled"]}
-        for s in sessions
-    ])
-
-
-@app.route("/api/watcher/sessions/<sid>/queue/add", methods=["POST"])
-def watcher_queue_add(sid: str) -> Response:
-    user = _watcher_user()
-    if not user:
-        return jsonify({"error": "bad or missing watcher token"}), 401
-    if not no_server_store.owns(sid, user["user_id"]):
-        return jsonify({"error": "session not found"}), 404
-    sess = no_server_store.get_session(sid)
-    if not sess:
-        return jsonify({"error": "session not found"}), 404
-    if not sess.get("watcher_enabled"):
-        return jsonify({"error": "auto-add is turned off for this session"}), 403
-
-    data = request.get_json(silent=True) or {}
-    items = data.get("items") or []
-    existing = {s["url"] for s in sess.get("songs", [])}
-    added = 0
-    for item in items:
-        url = (item.get("url") or "").strip()
-        if not url or url in existing:
-            continue
-        if not (url.startswith("http://") or url.startswith("https://")):
-            continue
-        platform = _detect_platform(url)
-        if platform == "Unknown":
-            continue
-        author = (item.get("author") or "").strip() or "Listener"
-        used = no_server_store.used_emojis(sid)
-        pool = [e for e in _DASHBOARD_SONG_EMOJIS if e not in used]
-        emoji = random.choice(pool or list(_DASHBOARD_SONG_EMOJIS))
-        no_server_store.add_song(sid, url, platform, emoji, author, _now_iso())
-        existing.add(url)
-        added += 1
-    return jsonify({"added": added})
 
 
 # ════════════════════════════════════════════════════════════════════
