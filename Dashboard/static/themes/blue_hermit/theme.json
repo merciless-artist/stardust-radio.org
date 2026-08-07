@@ -1,0 +1,11 @@
+{
+  "name": "Blue Hermit",
+  "description": "Blue Hermit's channel — cool blue stage, his own marquee.",
+  "accent_color": "#4dafff",
+  "accent_color_soft": "rgba(77, 175, 255, 0.28)",
+  "stage_lit":           "/static/themes/blue_hermit/stage-lit.png",
+  "frame_album":         "/static/themes/blue_hermit/frame-album.png",
+  "frame_nowplaying":    "/static/themes/blue_hermit/smallmarquee.png",
+  "spotlight":           "/static/themes/blue_hermit/spot.png",
+  "dustmotes":           "/static/themes/blue_hermit/light.gif"
+}

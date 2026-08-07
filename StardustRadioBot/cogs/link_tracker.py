@@ -75,15 +75,42 @@ def _emoji_before_url(content: str, url: str) -> Optional[str]:
     return None
 
 
-# Random per-song marker (the dashboard shows it beside each queued song when
-# the poster didn't supply their own emoji prefix).
+# Per-song marker (the dashboard shows it beside each queued song when the
+# poster didn't supply their own emoji prefix). Restricted to a color palette
+# so `/queue` and `!delete <emoji>` stay readable and pickable.
 SONG_EMOJIS = [
-    '🎸', '🎹', '🥁', '🎺', '🎻', '🎷', '🪗', '🪘', '🪕', '🎤',
-    '🦋', '🔥', '💎', '⚡', '🌙', '☀️', '🌊', '🍀', '🦊', '🐉',
-    '🎯', '🏆', '👑', '💫', '🌟', '🎪', '🎭', '🎨', '🧊', '🫧',
-    '🍒', '🍭', '🌸', '🌺', '🍄', '🪐', '🗡️', '🛸', '🎃', '🦄',
-    '🐝', '🦅', '🐬', '🦩', '🌵', '🍉', '🧿', '💀', '🤖', '👾',
+    # pinks / reds
+    '🩷', '🔴', '🟥', '❤️',
+    # oranges
+    '🟠', '🧡',
+    # yellows
+    '🟡', '🟨', '💛',
+    # greens
+    '🟢', '🟩', '💚',
+    # blues (💙 is canonical; 🩵 is treated as an alias — see _EMOJI_ALIASES)
+    '🔵', '🟦', '💙',
+    # purples
+    '🟣', '🟪', '💜',
+    # browns
+    '🟤', '🟫', '🤎',
+    # blacks
+    '⚫', '⬛', '🖤',
+    # whites / greys
+    '⚪', '⬜', '🤍', '🔘', '🔲', '🩶',
 ]
+
+# Aliases: emojis a user might type that should match the canonical stored form.
+# Keeps `!delete 🩵` working when the queued song was stored under 💙.
+_EMOJI_ALIASES = {
+    '🩵': '💙',   # light-blue heart shares a "blue" slot with the classic blue heart
+}
+
+
+def _normalize_emoji(emoji: Optional[str]) -> Optional[str]:
+    """Return the canonical form of an emoji (alias-collapsed) or the input as-is."""
+    if not emoji:
+        return emoji
+    return _EMOJI_ALIASES.get(emoji, emoji)
 
 
 # ◸──────── ✧ ────────🔹-💠-🔹 ──────── ◇ ———————◹
@@ -225,7 +252,7 @@ class LinkTracker(commands.Cog):
                 continue
 
             platform = self._get_platform(url)
-            user_emoji = _emoji_before_url(message.content, url)
+            user_emoji = _normalize_emoji(_emoji_before_url(message.content, url))
             emoji = user_emoji or await self._pick_emoji(message.guild.id)
 
             await self.db.execute(
@@ -336,6 +363,92 @@ class LinkTracker(commands.Cog):
             return
         lines = "\n".join(f"・<#{row['channel_id']}>" for row in channels)
         await ctx.send(f"・♪ Tracking:\n{lines}")
+
+    # ◸──────── ✧ ────────🔹-💠-🔹 ──────── ◇ ———————◹
+    #       SECTION: Self-service queue commands (delete / queue)
+    # ◺──────── ✧ ────────🔹-💠-🔹 ──────── ◇ ———————◿
+
+    @commands.hybrid_command(
+        name="delete",
+        description="Remove your queued song by its emoji (e.g. !delete 💙)",
+    )
+    @discord.app_commands.describe(
+        emoji="The emoji shown next to your song in /queue (🩵 also works as 💙).",
+    )
+    async def delete_song(self, ctx: commands.Context, emoji: str):
+        """Delete the caller's own unplayed song in this channel matching `emoji`."""
+        if ctx.guild is None:
+            await ctx.send("This command only works inside a server.")
+            return
+
+        wanted = _normalize_emoji((emoji or "").strip())
+        if not wanted:
+            await ctx.send("Give me an emoji, e.g. `!delete 💙`.")
+            return
+
+        row = await self.db.fetchone_dict(
+            "SELECT id, url, emoji FROM tracked_links "
+            "WHERE guild_id = %s AND channel_id = %s AND user_id = %s "
+            "  AND emoji = %s AND played = 0 "
+            "ORDER BY tracked_at ASC LIMIT 1",
+            (ctx.guild.id, ctx.channel.id, ctx.author.id, wanted),
+        )
+        if not row:
+            await ctx.send(
+                f"You have no queued song in this channel marked {emoji}. "
+                "Run `/queue` to see what's in the queue and its emoji."
+            )
+            return
+
+        await self.db.execute(
+            "DELETE FROM tracked_links WHERE id = %s",
+            (row["id"],),
+        )
+        print(f"[link_tracker] deleted song id={row['id']} emoji={row['emoji']} "
+              f"by user={ctx.author.id} in channel={ctx.channel.id}", flush=True)
+        await ctx.send(f"・♪ Removed your {row['emoji']} song from the queue.")
+
+    @commands.hybrid_command(
+        name="queue",
+        description="Show every song currently queued in this channel with its emoji.",
+    )
+    async def show_queue(self, ctx: commands.Context):
+        """List all unplayed tracked songs in the current channel."""
+        if ctx.guild is None:
+            await ctx.send("This command only works inside a server.")
+            return
+
+        rows = await self.db.fetchall_dict(
+            "SELECT emoji, username, url, platform FROM tracked_links "
+            "WHERE guild_id = %s AND channel_id = %s AND played = 0 "
+            "ORDER BY tracked_at ASC",
+            (ctx.guild.id, ctx.channel.id),
+        )
+        if not rows:
+            await ctx.send("The queue is empty in this channel.")
+            return
+
+        header = "・♪ ──────── Current queue ──────── ♪・"
+        lines = [header]
+        for r in rows:
+            marker = r.get("emoji") or "🎵"
+            who = r.get("username") or "?"
+            url = r.get("url") or ""
+            # Trim really long CDN URLs so the message stays readable
+            shown = url if len(url) <= 90 else url[:87] + "…"
+            lines.append(f"{marker}  {shown}  · *{who}*")
+        lines.append("\nRemove yours with `!delete <emoji>`.")
+
+        # Discord caps messages at 2000 chars — chunk if needed.
+        MAX = 1900
+        buf = ""
+        for line in lines:
+            if buf and len(buf) + len(line) + 1 > MAX:
+                await ctx.send(buf.rstrip())
+                buf = ""
+            buf += line + "\n"
+        if buf:
+            await ctx.send(buf.rstrip())
 
 
 async def setup(bot: commands.Bot):

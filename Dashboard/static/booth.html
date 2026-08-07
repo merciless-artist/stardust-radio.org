@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -270,20 +270,6 @@
             background: var(--bg-panel);
             color: var(--text-dim);
             border-color: var(--border);
-        }
-
-        .btn-mute {
-            background: rgba(144, 144, 200, 0.12);
-            color: #9090c8;
-            border-color: #9090c8;
-            font-size: 18px;
-            min-width: 52px;
-        }
-
-        .btn-mute.muted {
-            background: rgba(240, 212, 138, 0.15);
-            color: var(--accent);
-            border-color: var(--accent);
         }
 
         #timer-display {
@@ -775,8 +761,8 @@
             font-weight: 700;
             letter-spacing: 1px;
         }
-        /* AWAY button — distinct from POST so the host can find it. Shows */
-        /* a gold-tinted state when away mode is currently active.        */
+        /* AWAY button — sits in the transport row beside NEXT. Shows a  */
+        /* gold-tinted state when away mode is currently active.         */
         .btn-away {
             border-color: var(--gold-soft);
             color: var(--text-dim);
@@ -792,6 +778,14 @@
         }
 
         /* ♪ ──────── Now-playing header toggle buttons (lyrics, etc.) ──────── ♪ */
+        /* HOST AUDIO toggle goes gold when the audio is OFF, so "I can't
+           hear this screen" is obvious at a glance during a live party. */
+        #btn-mute.is-muted {
+            background: rgba(240, 212, 138, 0.15);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
         .np-toggle-btn {
             margin-left: 8px;
             padding: 6px 14px 6px 12px;
@@ -1193,18 +1187,6 @@
         .booth-context__badge.bot{background:#1d3a5f;color:#bfe0ff;}
         .booth-context__badge.solo{background:#352f5e;color:#d6cffb;}
         .booth-context__status{opacity:.7;}
-        /* ── No-Server tools bar (solo mode only) ── */
-        .solo-tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-          padding:10px 14px;margin:0 0 14px;border-radius:12px;
-          background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);}
-        .solo-toggle{display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer;}
-        .solo-tools__hint{font-size:12px;opacity:.6;}
-        .solo-tools__btn{padding:6px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.18);
-          background:#352f5e;color:#d6cffb;font-weight:600;cursor:pointer;}
-        .watcher-token-box{display:flex;align-items:center;gap:8px;width:100%;}
-        .watcher-token-box input{flex:1;min-width:200px;padding:6px 10px;border-radius:8px;
-          border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:#fff;font-family:monospace;}
-        .watcher-token-hint{font-size:12px;opacity:.7;}
     </style>
 </head>
 <body>
@@ -1221,20 +1203,6 @@
           <div class="booth-context__mode">
             <span class="booth-context__badge" id="ctx-badge">…</span>
             <span class="booth-context__status" id="ctx-status"></span>
-          </div>
-        </div>
-
-        <!-- ♪ ──── NO-SERVER TOOLS (solo mode only) ──── ♪ -->
-        <div id="solo-tools" class="solo-tools" style="display:none;">
-          <label class="solo-toggle">
-            <input type="checkbox" id="watcher-toggle" onchange="setWatcherEnabled(this.checked)">
-            <span>Auto-add from Discord</span>
-          </label>
-          <span class="solo-tools__hint">needs the watcher app running on your PC</span>
-          <button type="button" class="solo-tools__btn" onclick="connectWatcher()">Connect watcher</button>
-          <div id="watcher-token-box" class="watcher-token-box" style="display:none;">
-            <input type="text" id="watcher-token-field" readonly onclick="this.select()">
-            <span class="watcher-token-hint">Paste this into your watcher once. <a href="#" onclick="regenWatcherToken();return false;">regenerate</a></span>
           </div>
         </div>
 
@@ -1263,9 +1231,17 @@
                     aria-label="Quick reference">HELP</button>
             <button type="button" id="invite-btn" class="np-toggle-btn"
                     onclick="copyInvite()"
-                    title="Copy the drop-links server invite to share with listeners"
-                    aria-label="Copy drop-links invite">
-                <span class="np-toggle-btn__label" id="invite-btn-label">COPY DROP-LINK INVITE</span>
+                    title="Copy the support server invite to share with listeners"
+                    aria-label="Copy support server invite">
+                <span class="np-toggle-btn__label" id="invite-btn-label">SUPPORT SERVER</span>
+            </button>
+            <!-- Your own audio on this screen. Host mode starts it OFF so you
+                 don't echo the DJ's screen-share; turn it ON to listen. -->
+            <button type="button" id="btn-mute" class="np-toggle-btn"
+                    onclick="toggleMute()"
+                    title="Turn the audio on this screen on or off (does not affect listeners)"
+                    aria-label="Host audio">
+                <span class="np-toggle-btn__label" id="mute-btn-label">HOST AUDIO ON</span>
             </button>
         </div>
 
@@ -1359,14 +1335,15 @@
             <!-- Co-host badge: shown only in Host mode (body.booth-host-mode).
                  Sits in #player-area as a sibling of #player-container so it
                  survives the innerHTML swaps that happen on every song. -->
-            <div id="host-badge">📋 HOST — controls sync to the DJ · audio muted (click 🔊 to monitor)</div>
+            <div id="host-badge">📋 HOST MODE — your audio is off · click HOST AUDIO above to listen</div>
         </div>
 
         <div id="controls">
             <button class="btn" onclick="skipPrev()">&#9664; BACK</button>
             <button class="btn btn-pause paused" id="btn-pause" onclick="togglePause()">AUTO OFF</button>
             <button class="btn btn-next" id="btn-next" onclick="skipNext()">NEXT &#9654;</button>
-            <button class="btn btn-mute" id="btn-mute" onclick="toggleMute()" title="Mute/unmute audio">&#128266;</button>
+            <button class="btn btn-away" id="away-btn"
+                    onclick="toggleAwayMode()" title="Play a screensaver background (no note text)">AWAY</button>
             <span id="timer-display"></span>
         </div>
 
@@ -1374,8 +1351,6 @@
             <input type="text" id="note-input" placeholder="Type a note to show on screen..."
                    onkeydown="if(event.key==='Enter')sendNote()">
             <button class="btn btn-note" onclick="sendNote()">POST</button>
-            <button class="btn btn-note btn-away" id="away-btn"
-                    onclick="toggleAwayMode()" title="Play a screensaver background (no note text)">AWAY</button>
             <button class="btn btn-note" onclick="clearNote()">CLEAR</button>
         </div>
     </main>
@@ -1384,7 +1359,7 @@
     <aside id="queue-sidebar">
         <div class="brand-header">
             <img src="/booth/logo.png" alt="" class="brand-logo" id="brand-logo" onclick="uploadLogo()" title="Click to change logo" style="cursor:pointer;">
-            <span class="brand-name" id="brand-name" ondblclick="renameBrand(this)" title="Double-click to rename">STARDUST</span>
+            <span class="brand-name" id="brand-name" ondblclick="renameBrand(this)" title="Double-click to rename">STUDIOAI</span>
             <button class="mode-toggle" id="mode-toggle" onclick="toggleMode()"
                 title="Click to switch role. DJ plays audio (screen-share this browser). Host has same controls but no audio (use when someone else is the DJ).">
                 🎧 DJ
@@ -1397,8 +1372,9 @@
         </div>
         <div class="add-track-row" id="add-track-row">
             <input type="text" id="add-track-input"
-                   placeholder="🔗  Paste a URL to add a track..."
+                   placeholder="🔗  Paste a link — or a whole list — to add..."
                    onkeydown="if(event.key==='Enter') addTrackManual()"
+                   onpaste="handleAddPaste(event)"
                    autocomplete="off" spellcheck="false">
             <button class="add-track-btn" onclick="addTrackManual()"
                     title="Add track to the queue">+</button>
@@ -1436,9 +1412,9 @@
         preResolveSuno(OUTRO_URL);   // warm it up so it's instant when reached
     }
 
-    // ── Drop-links invite: a server invite the host shares so listeners in a
-    //    bot-less LP can join and drop their links in a tracked channel. ──
-    const INVITE_URL = '#';
+    // ── Support server invite: shared with listeners so they can join and
+    //    drop their links in a tracked channel. ──
+    const INVITE_URL = 'https://discord.gg/BpsFdRkB7u';
     function copyInvite() {
         const label = document.getElementById('invite-btn-label');
         function flash() {
@@ -1566,32 +1542,6 @@
         }
     }
 
-    /* ╭───────────────────────────────── ♱ · NO-SERVER WATCHER TOOLS · ♱ ─╮ */
-    /*      Solo-only: auto-add toggle + personal watcher-token controls.    */
-    /* ╰─ ♱ · 𓆩🤍𓆪 · ♱ ──────────────────────────────────────────────────────╯ */
-
-    function setWatcherEnabled(enabled) {
-        if (!isSolo) return;
-        fetch('/api/solo/sessions/' + encodeURIComponent(soloParam) + '/watcher', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ enabled: enabled })
-        }).catch(function(){});
-    }
-    function connectWatcher() {
-        fetch('/api/solo/watcher-token', { method: 'POST' })
-            .then(function(r){ return r.json(); })
-            .then(function(d){
-                document.getElementById('watcher-token-field').value = d.token || '';
-                document.getElementById('watcher-token-box').style.display = 'flex';
-            }).catch(function(){});
-    }
-    function regenWatcherToken() {
-        fetch('/api/solo/watcher-token/regenerate', { method: 'POST' })
-            .then(function(r){ return r.json(); })
-            .then(function(d){ document.getElementById('watcher-token-field').value = d.token || ''; })
-            .catch(function(){});
-    }
-
     /* ╭──────────────────────────────────── ♱ · YOUTUBE API · ♱ ─╮ */
 
     function onYouTubeIframeAPIReady() {
@@ -1626,7 +1576,7 @@
                 iv_load_policy: 3,
                 // Start muted when this browser is muted (Host default) so a
                 // YouTube song doesn't blare for a moment before applyMute
-                // catches it. applyMute / toggleMute can unmute afterward.
+                // catches it. applyMute can unmute afterward.
                 mute: isMuted ? 1 : 0,
                 // Set origin so YouTube allows the embed on more videos
                 origin: window.location.origin
@@ -2196,7 +2146,19 @@
 
     /* ╭──────────────────────────────── ♱ · GENERIC EMBED · ♱ ─╮ */
 
+    function isDirectAudioUrl(url) {
+        // A URL whose path ends in a known audio extension (ignoring any
+        // ?query / #hash), e.g. cdn1.suno.ai/<uuid>.mp3 — playable directly.
+        return /\.(mp3|m4a|wav|ogg|flac|opus)(?:[?#]|$)/i.test(url || '');
+    }
+
     function loadGenericEmbed(url) {
+        // A raw audio file that fell through here (e.g. a Suno CDN mp3 that
+        // classifies as "Suno" but isn't a share page) must play in the
+        // <audio> element — NOT an iframe — so end-detection and the per-song
+        // countdown work instead of the 15-min "generic embed" fallback.
+        if (isDirectAudioUrl(url)) { loadDirectAudio(url); return; }
+
         clearAllTimers();
         const container = document.getElementById('player-container');
         container.innerHTML =
@@ -2326,6 +2288,15 @@
             }
         });
 
+        // Once metadata loads, drive the countdown from THIS song's real
+        // length (+20s buffer) instead of the 6-min hard fallback — so the
+        // timer shows the actual song, not a generic guess.
+        audio.addEventListener('loadedmetadata', function() {
+            if (audio.duration > 0 && isFinite(audio.duration)) {
+                startAutoAdvanceTimer(Math.ceil(audio.duration) + 20);
+            }
+        });
+
         audio.addEventListener('error', function() {
             console.log('[DJ] Direct audio error — file may be unreachable');
             // 30s grace before auto-skipping so the user can react.
@@ -2335,7 +2306,8 @@
         // Hard fallback if both `ended` and the near-end `timeupdate`
         // somehow fail to fire (some range-request quirks, background-
         // tab throttling on certain browsers). 6 minutes covers most
-        // any reasonable song.
+        // any reasonable song. Superseded by the real duration above once
+        // metadata loads.
         startAutoAdvanceTimer(360);
     }
 
@@ -2661,45 +2633,54 @@
 
     /* ╭──────────────────────────── ♱ · MANUAL ADD TRACK · ♱ ─╮ */
 
+    // Parse "🟥 https://..." → { emoji, url, ok }. The emoji prefix is optional;
+    // when present (any non-ASCII text before the URL) it rides along so the
+    // song shows on the dash with that exact emoji.
+    function parseEmojiUrl(raw) {
+        raw = (raw || '').trim();
+        let emoji = '', url = raw;
+        const httpAt = raw.search(/https?:\/\//i);
+        if (httpAt > 0) {
+            const prefix = raw.slice(0, httpAt).trim();
+            if (/[^\x00-\x7F]/.test(prefix)) emoji = prefix;  // non-ASCII → treat as emoji
+        }
+        if (httpAt >= 0) url = raw.slice(httpAt).split(/\s/)[0];  // URL up to first space
+        return { emoji: emoji, url: url, ok: /^https?:\/\//i.test(url) };
+    }
+
+    function postTrack(url, emoji) {
+        return fetch(queueApi('/add'), {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ url: url, emoji: emoji || '' })
+        }).then(function(r) {
+            return r.json().then(function(data) { return { ok: r.ok, data: data || {} }; });
+        });
+    }
+
     function addTrackManual() {
         const input = document.getElementById('add-track-input');
         const row   = document.getElementById('add-track-row');
         if (!input || !row) return;
+        if (!input.value.trim()) return;
 
-        const url = input.value.trim();
-        if (!url) return;
-
-        // Quick client-side validation — server validates more thoroughly
-        // but bouncing obvious garbage here saves a round-trip.
-        if (!/^https?:\/\//i.test(url)) {
-            flashAddTrackError(input, row, 'URL must start with http:// or https://');
+        const p = parseEmojiUrl(input.value);
+        if (!p.ok) {
+            flashAddTrackError(input, row, 'Add a link — you can prefix an emoji, e.g. 🟥 https://…');
             return;
         }
 
-        // Disable the button briefly so a rapid double-click doesn't
-        // create duplicate rows.
         const btn = row.querySelector('.add-track-btn');
         if (btn) btn.disabled = true;
 
-        fetch(queueApi('/add'), {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ url: url })
-        })
-        .then(function(r) {
-            return r.json().then(function(data) {
-                return { ok: r.ok, data: data || {} };
-            });
-        })
+        postTrack(p.url, p.emoji)
         .then(function(result) {
             if (btn) btn.disabled = false;
             if (!result.ok) {
-                flashAddTrackError(input, row,
-                    result.data.error || 'Could not add this URL');
+                flashAddTrackError(input, row, result.data.error || 'Could not add this URL');
                 return;
             }
-            // Success — clear the input. The next pollQueue (≤2s) picks
-            // up the new song and renders it into the sidebar.
+            // Success — the next pollQueue (≤2s) renders the new song.
             input.value = '';
             input.title = '';
         })
@@ -2708,6 +2689,46 @@
             console.log('[DJ] Add track failed:', e);
             flashAddTrackError(input, row, 'Network error — try again');
         });
+    }
+
+    // Bulk paste: a multi-line clipboard (a whole contest block of
+    // "emoji  https://..." lines) adds every line as its own track. A
+    // single-line paste falls through to normal typing/paste behavior.
+    function handleAddPaste(e) {
+        const cb = e.clipboardData || window.clipboardData;
+        if (!cb) return;
+        const text = cb.getData('text') || '';
+        if (text.indexOf('\n') === -1) return;  // single line — let it paste normally
+        e.preventDefault();
+        const lines = text.split(/\r?\n/).map(function(s){ return s.trim(); }).filter(Boolean);
+        bulkAddTracks(lines);
+    }
+
+    function bulkAddTracks(lines) {
+        const input = document.getElementById('add-track-input');
+        const row   = document.getElementById('add-track-row');
+        const btn   = row ? row.querySelector('.add-track-btn') : null;
+        if (btn) btn.disabled = true;
+        if (input) { input.value = ''; input.title = 'Adding ' + lines.length + '…'; }
+
+        let added = 0, skipped = 0;
+        // Add one at a time so the per-session store stays consistent and the
+        // queue fills in the pasted order.
+        function next(i) {
+            if (i >= lines.length) {
+                if (btn) btn.disabled = false;
+                if (input) input.title = added + ' added' + (skipped ? ', ' + skipped + ' skipped' : '');
+                if (row && added === 0) flashAddTrackError(input, row, 'Nothing added — check the links');
+                return;
+            }
+            const p = parseEmojiUrl(lines[i]);
+            if (!p.ok) { skipped++; next(i + 1); return; }
+            postTrack(p.url, p.emoji)
+                .then(function(res) { if (res.ok) { added++; } else { skipped++; } })
+                .catch(function() { skipped++; })
+                .then(function() { next(i + 1); });
+        }
+        next(0);
     }
 
     function flashAddTrackError(input, row, message) {
@@ -3046,18 +3067,14 @@
     /* ╭──────────────────────────── ♱ · MUTE CONTROL · ♱ ─╮ */
 
     function updateMuteButton() {
-        // Sync the speaker button's icon + style to the current isMuted
-        // state. Split out of toggleMute so applyMode() can refresh the
-        // button when it changes the default mute for a mode switch.
+        // Sync the HOST AUDIO button to the current isMuted state. Split out
+        // of toggleMute so applyMode() can refresh it when a mode switch
+        // changes the default mute.
         const btn = document.getElementById('btn-mute');
-        if (!btn) return;
-        if (isMuted) {
-            btn.innerHTML = '&#128264;';
-            btn.classList.add('muted');
-        } else {
-            btn.innerHTML = '&#128266;';
-            btn.classList.remove('muted');
-        }
+        const label = document.getElementById('mute-btn-label');
+        if (!btn || !label) return;
+        label.textContent = isMuted ? 'HOST AUDIO OFF' : 'HOST AUDIO ON';
+        btn.classList.toggle('is-muted', isMuted);
     }
 
     function toggleMute() {
@@ -3701,17 +3718,6 @@
     refreshContextHeader();
     pollQueue();
     pollNote();
-
-    // No-Server tools: reveal in solo mode + sync the toggle from the session.
-    if (isSolo) {
-        document.getElementById('solo-tools').style.display = 'flex';
-        fetch('/api/solo/sessions')
-            .then(function(r){ return r.json(); })
-            .then(function(list){
-                var s = (list || []).find(function(x){ return x.id === soloParam; }) || {};
-                document.getElementById('watcher-toggle').checked = !!s.watcher_enabled;
-            }).catch(function(){});
-    }
 
     </script>
 </body>

@@ -1,8 +1,8 @@
-﻿// ╭─────────────────────────────────────────────────────── ♱ · 𓆩🤍𓆪 · ♱ ─╮
+// ╭─────────────────────────────────────────────────────── ♱ · 𓆩🤍𓆪 · ♱ ─╮
 //      SECTION: Channel picker — fetches all stations + renders tiles
 //      Polls /api/stations every 12s so cards reflect what's live now.
 // ╰─ ♱ · 𓆩🤍𓆪 · ♱ ───────────────────────────────────────────────────────╯
-const CFG = window.RADIO_CONFIG ?? {};
+const CFG = window.STUDIOAI_CONFIG ?? {};
 const POLL_MS = 12_000;
 const grid = document.getElementById('picker-grid');
 

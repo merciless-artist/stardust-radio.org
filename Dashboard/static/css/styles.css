@@ -1,4 +1,4 @@
-﻿/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
+/* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
 /*      SECTION: Design tokens (Stardust Radio palette)
 /*      Idle = silver/gray (lights off)
 /*      Playing = warm gold (lights on)
@@ -686,7 +686,7 @@ body.is-playing .info-stack {
 }
 
 /* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡
-/*      SECTION: Footer — Discord logo + legal links
+/*      SECTION: Footer — discord.gg/StudioAI logo + legal links
 /* ♡ ─ ──────────────────────────── ♡ ✦ ♡ ──────────────────────────── ─ ♡ */
 .brand-footer {
   position: relative;

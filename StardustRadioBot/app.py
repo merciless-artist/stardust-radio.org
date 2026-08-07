@@ -15,6 +15,18 @@ from dotenv import load_dotenv
 
 from utils.database import Database
 
+# ◸──────── ✧ ────────🔹-💠-🔹 ──────── ◇ ———————◹
+#       SECTION: Force UTF-8 for console I/O (fixes Windows cp1252
+#                'charmap' UnicodeEncodeError on emoji / non-Latin
+#                channel names, song titles, etc. in prints and logs)
+# ◺──────── ✧ ────────🔹-💠-🔹 ──────── ◇ ———————◿
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except (AttributeError, OSError):
+    # Fallback for exotic environments where reconfigure isn't available.
+    pass
+
 load_dotenv()
 
 
@@ -33,9 +45,11 @@ bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 COGS = [
     "cogs.link_tracker",
     "cogs.radio_submit",
+    "cogs.dj_stations",
     "cogs.voice",
     "cogs.cleanup",
     "cogs.support",
+    "cogs.presence",
 ]
 
 
@@ -50,6 +64,7 @@ async def stardust_help(ctx: commands.Context):
         "・/radio play ・ play the station in your voice channel\n"
         "・/radio stop ・ stop and leave\n"
         "・/radiosubmit ・ submit a song to the radio\n"
+        "・/addsong ・ (DJs) add a song to your station or the community radio\n"
         "・!starttracking ・ start an LP in this channel (feeds the dashboard)\n"
         "・!stoptracking ・ end the LP and get the link list\n"
         "・/purge ・ delete recent messages\n"

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Stardust Radio</title>
+  <link rel="stylesheet" href="/static/activity/activity.css">
+  <!-- public client id, then the vendored Embedded App SDK (sets window.DiscordSDK) -->
+  <script src="/activity/config.js"></script>
+  <script src="/static/activity/vendor/discord-sdk.js"></script>
+</head>
+<body>
+  <main id="app">
+    <div id="art-wrap">
+      <img id="art" alt="Cover art">
+    </div>
+
+    <div id="now">
+      <div id="title">Connecting…</div>
+      <div id="artist"></div>
+    </div>
+
+    <div id="stations" aria-label="Stations"></div>
+
+    <div id="listeners" aria-label="Listening now"></div>
+
+    <button id="tap" hidden>&#9654; Tap to start</button>
+    <div id="status"></div>
+
+    <audio id="audio" preload="none"></audio>
+  </main>
+
+  <script src="/static/activity/activity.js?v=20260806b"></script>
+</body>
+</html>

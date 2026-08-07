@@ -71,12 +71,23 @@
             color: var(--text);
             transition: all 0.15s;
             cursor: pointer;
+            /* Anchor point for the stretched link below. */
+            position: relative;
         }
 
         .server-card:hover {
             border-color: var(--accent);
             transform: translateY(-2px);
             box-shadow: 0 4px 20px rgba(233, 69, 96, 0.15);
+        }
+
+        /* Stretch the card's link over the whole card — including the padding
+           and gaps — so every pixel that looks clickable actually is. */
+        .server-card__hit::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
         }
 
         .server-icon {
@@ -90,8 +101,10 @@
             font-size: 18px;
             flex-shrink: 0;
             overflow: hidden;
-            position: relative;
             cursor: pointer;
+            /* Above the stretched card link so icon-upload clicks still land. */
+            position: relative;
+            z-index: 1;
         }
 
         .server-icon img {
@@ -161,83 +174,143 @@
         }
 
         /* ◸──────── ✧ ────────🔹-💠-🔹──────── ◇ ———————◹
-              SECTION: quiet "host from a link" bookmarklet generator
+              SECTION: No-Server sessions (host with no bot at all)
            ◺──────── ✧ ────────🔹-💠-🔹──────── ◇ ———————◿ */
-        .host-from-link {
-            margin: 28px auto 4px;
-            max-width: 420px;
-            text-align: center;
-            opacity: .72;
+        .solo {
+            margin-top: 36px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            text-align: left;
         }
 
-        .hfl-toggle {
+        .solo-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .solo-title {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .solo-sub {
+            color: var(--text-dim);
+            font-size: 12px;
+            margin-bottom: 14px;
+        }
+
+        .solo-new {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .solo-input {
+            flex: 1;
+            min-width: 0;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-panel);
+            color: var(--text);
+            font: 14px 'Segoe UI', system-ui, sans-serif;
+        }
+
+        .solo-input:focus { outline: none; border-color: var(--accent); }
+
+        .solo-btn {
+            padding: 10px 18px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-panel);
+            color: var(--text);
+            font: 700 13px 'Segoe UI', system-ui, sans-serif;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s;
+        }
+
+        .solo-btn:hover:not(:disabled) { border-color: var(--accent); color: #fff; }
+        .solo-btn:disabled { opacity: .5; cursor: default; }
+
+        .solo-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 13px 16px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: all 0.15s;
+            cursor: pointer;
+            /* Anchor point for the stretched link below. */
+            position: relative;
+        }
+
+        .solo-card:hover { border-color: var(--accent); }
+
+        /* Stretch the link across the whole card so the padding and gaps are
+           clickable too, not just the text. */
+        .solo-card__link::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+        }
+
+        .solo-card__link {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .solo-card__name {
+            font-weight: 700;
+            font-size: 15px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .solo-card__meta { color: var(--text-dim); font-size: 12px; flex-shrink: 0; }
+
+        .solo-card__del {
             background: none;
             border: 0;
-            color: var(--text-dim);
-            font: 12px 'Segoe UI', system-ui, sans-serif;
-            cursor: pointer;
-            opacity: .8;
-            padding: 4px;
-        }
-
-        .hfl-toggle:hover { opacity: 1; color: var(--text); }
-
-        .hfl-body {
-            margin-top: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .hfl-hint {
-            font: 11px 'Segoe UI', system-ui, sans-serif;
             color: var(--text-muted);
-            margin: 0 0 2px;
-        }
-
-        .hfl-input {
-            width: 100%;
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: var(--bg-panel);
-            color: var(--text);
-            font: 13px 'Segoe UI', system-ui, sans-serif;
-        }
-
-        .hfl-input:focus { outline: none; border-color: var(--accent); }
-
-        .hfl-make {
-            padding: 8px 14px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            background: var(--bg-panel);
-            color: var(--text);
-            font: 13px 'Segoe UI', system-ui, sans-serif;
+            font-size: 16px;
             cursor: pointer;
+            padding: 2px 6px;
+            flex-shrink: 0;
+            /* Above the stretched link so delete clicks don't open the booth. */
+            position: relative;
+            z-index: 1;
         }
 
-        .hfl-make:hover { border-color: var(--accent); }
-        .hfl-make:disabled { opacity: .5; cursor: default; }
+        .solo-card__del:hover { color: var(--accent); }
 
-        .hfl-drag {
-            display: inline-block;
-            padding: 9px 16px;
-            border-radius: 999px;
-            background: var(--accent);
-            color: #fff;
-            text-decoration: none;
-            font: 700 13px 'Segoe UI', system-ui, sans-serif;
-            cursor: grab;
+        .solo-error { color: var(--accent); font-size: 12px; margin-bottom: 8px; }
+
+        /* Visually hidden, still read by screen readers. */
+        .sr-only {
+            position: absolute;
+            width: 1px; height: 1px;
+            padding: 0; margin: -1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
+            white-space: nowrap;
+            border: 0;
         }
-
-        .hfl-error {
-            color: var(--accent);
-            font: 11px 'Segoe UI', system-ui, sans-serif;
-            margin: 0;
-        }
-
     </style>
 </head>
 <body>
@@ -249,17 +322,31 @@
             <div class="loading">Loading servers...</div>
         </div>
 
-        <div class="host-from-link">
-            <button type="button" class="hfl-toggle" id="hfl-toggle" onclick="hflToggle()">host from a link &#9656;</button>
-            <div class="hfl-body" id="hfl-body" hidden>
-                <p class="hfl-hint">Make a session, then drag the button to your bookmarks bar and click it on your stream tab.</p>
-                <input id="hfl-name" class="hfl-input" placeholder="session name (e.g. Friday LP)" maxlength="80">
-                <button type="button" class="hfl-make" id="hfl-make" onclick="hflMake()">create + get button</button>
-                <p class="hfl-error" id="hfl-error" hidden></p>
-                <a id="hfl-bookmarklet" class="hfl-drag" href="#" hidden onclick="return false;">&#9733; Sync this stream</a>
-                <a id="hfl-open" href="#" target="_blank" rel="noopener" hidden style="display:inline-block;margin-top:6px;font:12px system-ui;color:var(--accent,#7fd);text-decoration:underline;">&#9654; Open this booth</a>
+        <!-- ⪧•──────⪧✿⪦── 🦋──⪧✿──────⪦ ◯ 🌸 ◯ ──────⪧✿───────⪦ --->
+        <!--    SECTION: No-Server sessions — host with no bot at all    --->
+        <!-- ⪧──•───✿⪦──────⪧•────────⪧✿⪦ ◯ 🌸 ◯ ✿⪦────⪧•───✿⪦────•⪦ --->
+        <section class="solo">
+            <div class="solo-head">
+                <span class="solo-title">No-Server Sessions</span>
             </div>
-        </div>
+            <p class="solo-sub">
+                Run a listening party with no bot and no Discord server.
+                Make a session, open it, and paste your song links straight in.
+            </p>
+
+            <div class="solo-new">
+                <label class="sr-only" for="solo-name">New session name</label>
+                <input id="solo-name" class="solo-input" maxlength="80"
+                       placeholder="Session name (e.g. Friday LP)"
+                       onkeydown="if(event.key==='Enter'){soloCreate();}">
+                <button type="button" class="solo-btn" id="solo-create" onclick="soloCreate()">
+                    Create
+                </button>
+            </div>
+
+            <p class="solo-error" id="solo-error" hidden></p>
+            <div id="solo-list"></div>
+        </section>
     </div>
 
     <script>
@@ -282,7 +369,7 @@
                 html +=
                     '<div class="server-card">' +
                     '<div class="server-icon" onclick="event.preventDefault();event.stopPropagation();uploadIcon(\'' + g.guild_id + '\')">' + iconContent + '</div>' +
-                    '<a href="/booth?guild=' + g.guild_id + '" style="display:flex;align-items:center;gap:16px;flex:1;text-decoration:none;color:inherit;">' +
+                    '<a class="server-card__hit" href="/booth?guild=' + g.guild_id + '" style="display:flex;align-items:center;gap:16px;flex:1;text-decoration:none;color:inherit;">' +
                     '<div class="server-info">' +
                     '<div class="server-name">' + g.name + '</div>' +
                     '<div class="server-meta">' + g.song_count + ' songs</div>' +
@@ -297,95 +384,89 @@
             document.getElementById('server-list').innerHTML =
                 '<div class="empty">Could not load servers. Is the database running?</div>';
         });
-    /* ◸──────── ✧ ────────🔹-💠-🔹──────── ◇ ———————◹
-          SECTION: quiet "host from a link" bookmarklet generator
-       ◺──────── ✧ ────────🔹-💠-🔹──────── ◇ ———————◿ */
-    function hflToggle() {
-        var body = document.getElementById('hfl-body');
-        var toggle = document.getElementById('hfl-toggle');
-        var opening = body.hidden;
-        body.hidden = !opening;
-        toggle.innerHTML = opening ? 'host from a link &#9662;' : 'host from a link &#9656;';
+
+    /* ╭─────────────────────────────────── ♱ · NO-SERVER SESSIONS · ♱ ─╮
+     *   Create / list / delete botless sessions. No bot, no database.
+     * ╰─ ♱ · 𓆩🤍𓆪 · ♱ ────────────────────────────────────────────────╯ */
+
+    function soloError(msg) {
+        var el = document.getElementById('solo-error');
+        el.hidden = !msg;
+        el.textContent = msg || '';
     }
 
-    function hflSetError(msg) {
-        var err = document.getElementById('hfl-error');
-        if (!msg) {
-            err.hidden = true;
-            err.textContent = '';
+    function soloEscape(text) {
+        var d = document.createElement('div');
+        d.textContent = text == null ? '' : String(text);
+        return d.innerHTML;
+    }
+
+    function soloRender(sessions) {
+        var list = document.getElementById('solo-list');
+        if (!sessions.length) {
+            list.innerHTML = '';
             return;
         }
-        err.hidden = false;
-        err.textContent = msg;
+        list.innerHTML = sessions.map(function(s) {
+            var count = s.song_count === 1 ? '1 song' : (s.song_count || 0) + ' songs';
+            return '' +
+                '<div class="solo-card">' +
+                  '<a class="solo-card__link" href="/booth?solo=' + encodeURIComponent(s.id) + '">' +
+                    '<span class="solo-card__name">' + soloEscape(s.name) + '</span>' +
+                    '<span class="solo-card__meta">' + count + '</span>' +
+                  '</a>' +
+                  '<button type="button" class="solo-card__del" title="Delete this session" ' +
+                          'aria-label="Delete ' + soloEscape(s.name) + '" ' +
+                          'onclick="soloDelete(\'' + s.id + '\')">&#10005;</button>' +
+                '</div>';
+        }).join('');
     }
 
-    function hflMake() {
-        var nameInput = document.getElementById('hfl-name');
-        var makeBtn = document.getElementById('hfl-make');
-        var bookmarklet = document.getElementById('hfl-bookmarklet');
-        var name = nameInput.value.trim();
+    function soloLoad() {
+        fetch('/api/solo/sessions')
+            .then(function(r) { return r.json(); })
+            .then(function(list) { soloRender(Array.isArray(list) ? list : []); })
+            .catch(function() { /* signed out or offline — leave the list empty */ });
+    }
+
+    function soloCreate() {
+        var input = document.getElementById('solo-name');
+        var btn = document.getElementById('solo-create');
+        var name = input.value.trim();
         if (!name) {
-            hflSetError('Give the session a name first.');
+            soloError('Give the session a name first.');
+            input.focus();
             return;
         }
 
-        hflSetError('');
-        bookmarklet.hidden = true;
-        document.getElementById('hfl-open').hidden = true;
-        makeBtn.disabled = true;
-        makeBtn.textContent = 'working...';
-
-        var sessionId = null;
+        soloError('');
+        btn.disabled = true;
 
         fetch('/api/solo/sessions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: name })
         })
-        .then(function(r) { return r.json(); })
-        .then(function(session) {
-            if (!session || !session.id) { throw new Error(session && session.error || 'Could not create session.'); }
-            sessionId = session.id;
-            return fetch('/api/solo/sessions/' + sessionId + '/watcher', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled: true })
-            });
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(watcher) {
-            if (!watcher || !watcher.ok) { throw new Error('Could not enable syncing for this session.'); }
-            return fetch('/api/solo/watcher-token', { method: 'POST' });
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(tokenResp) {
-            if (!tokenResp || !tokenResp.token) { throw new Error(tokenResp && tokenResp.error || 'Could not get a token.'); }
-
-            var origin = location.origin;
-            var href = "javascript:(function(d){var s=d.createElement('script');s.src='" +
-                origin + "/static/viibr-sync.js#" +
-                encodeURIComponent(tokenResp.token) + "|" +
-                encodeURIComponent(sessionId) + "|" +
-                encodeURIComponent(origin) +
-                "';d.body.appendChild(s);})(document);";
-
-            bookmarklet.href = href;
-            bookmarklet.textContent = '★ Sync "' + name + '" — drag me to bookmarks';
-            bookmarklet.hidden = false;
-
-            var openLink = document.getElementById('hfl-open');
-            openLink.href = '/booth?solo=' + encodeURIComponent(sessionId);
-            openLink.textContent = '▶ Open this booth (' + name + ')';
-            openLink.hidden = false;
-        })
-        .catch(function(err) {
-            hflSetError(err.message || 'Something went wrong.');
-        })
-        .finally(function() {
-            makeBtn.disabled = false;
-            makeBtn.textContent = 'create + get button';
-        });
+            .then(function(r) { return r.json(); })
+            .then(function(session) {
+                if (!session || !session.id) {
+                    throw new Error((session && session.error) || 'Could not create the session.');
+                }
+                input.value = '';
+                soloLoad();
+            })
+            .catch(function(err) { soloError(err.message || 'Could not create the session.'); })
+            .finally(function() { btn.disabled = false; });
     }
+
+    function soloDelete(sessionId) {
+        if (!confirm('Delete this session and its queue?')) return;
+        fetch('/api/solo/sessions/' + encodeURIComponent(sessionId), { method: 'DELETE' })
+            .then(function() { soloLoad(); })
+            .catch(function() { soloError('Could not delete that session.'); });
+    }
+
+    soloLoad();
 
     function uploadIcon(guildId) {
         var input = document.createElement('input');
