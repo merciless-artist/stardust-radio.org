@@ -1675,11 +1675,52 @@
             '&download=false&show_artwork=true&show_playcount=false"></iframe>';
 
         const iframe = document.getElementById('sc-frame');
+        // SoundCloud's widget can fire FINISH early on a buffering stall /
+        // stream hiccup — cutting a 4-minute song off mid-way. So we track
+        // the real duration + position and only trust FINISH when we're
+        // actually near the end. Same advance-once guard as the other players.
+        let scDurationMs = 0;
+        let scPositionMs = 0;
+        let advancedThisSong = false;
+        function advanceOnce(reason) {
+            if (advancedThisSong) return;
+            advancedThisSong = true;
+            console.log('[DJ] SoundCloud advancing (' + reason + ')');
+            clearAllTimers();
+            if (!isPaused) advanceQueue();
+        }
         iframe.onload = function() {
             try {
                 const widget = SC.Widget(iframe);
+
+                // Once the track's real length is known, drive the countdown
+                // from it (+20s buffer) instead of a 30-min guess.
+                widget.bind(SC.Widget.Events.READY, function() {
+                    widget.getDuration(function(ms) {
+                        if (ms > 0) {
+                            scDurationMs = ms;
+                            startAutoAdvanceTimer(Math.ceil(ms / 1000) + 20);
+                        }
+                    });
+                });
+
+                widget.bind(SC.Widget.Events.PLAY_PROGRESS, function(e) {
+                    if (e && typeof e.currentPosition === 'number') {
+                        scPositionMs = e.currentPosition;
+                    }
+                });
+
                 widget.bind(SC.Widget.Events.FINISH, function() {
-                    if (!isPaused) advanceQueue();
+                    // Trust FINISH only if we're actually near the end
+                    // (>= 90% through) — otherwise it's a false finish from
+                    // a stall; let the song keep playing / the timer handle it.
+                    if (scDurationMs > 0 && scPositionMs < scDurationMs * 0.9) {
+                        console.log('[DJ] SoundCloud FINISH ignored — only at ' +
+                            Math.round(scPositionMs / 1000) + 's of ' +
+                            Math.round(scDurationMs / 1000) + 's (stall?)');
+                        return;
+                    }
+                    advanceOnce('finish event');
                 });
             } catch(e) {
                 // Widget API bind failed — fall back to a long generic timer
@@ -1687,8 +1728,8 @@
             }
         };
 
-        // Safety net: if SC widget doesn't fire, advance after 30 min
-        // (covers long mixes / DJ sets, not just standard 3-5 min tracks).
+        // Safety net until the widget reports the real duration: if SC never
+        // fires, advance after 30 min (covers long mixes / DJ sets).
         startAutoAdvanceTimer(1800);
     }
 
@@ -3060,6 +3101,17 @@
             try {
                 if (paused) ytPlayer.pauseVideo();
                 else        ytPlayer.playVideo();
+            } catch(e) {}
+        }
+        // SoundCloud lives in an iframe widget — <audio>/<video> selectors
+        // don't reach it, so it kept playing while the booth thought it was
+        // paused. Drive it through the Widget API like the mute logic does.
+        const scFrame = document.getElementById('sc-frame');
+        if (scFrame) {
+            try {
+                const widget = SC.Widget(scFrame);
+                if (paused) widget.pause();
+                else        widget.play();
             } catch(e) {}
         }
     }

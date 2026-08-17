@@ -149,6 +149,18 @@ def picker() -> Response:
     return send_from_directory(app.static_folder, "picker.html")
 
 
+@app.route("/privacy")
+def privacy_policy() -> Response:
+    """Privacy policy — also the URL given to Discord app verification."""
+    return send_from_directory(app.static_folder, "privacy.html")
+
+
+@app.route("/terms")
+def terms_of_service() -> Response:
+    """Terms of service — also the URL given to Discord app verification."""
+    return send_from_directory(app.static_folder, "terms.html")
+
+
 @app.route("/.well-known/discord")
 def discord_domain_verification() -> Response:
     """Domain-ownership proof for the Discord Activity / app.
@@ -897,6 +909,32 @@ _AUDIO_EXTENSIONS: tuple[str, ...] = (
 )
 
 
+def _resolve_short_link(url: str) -> str:
+    """Expand SoundCloud short links (on.soundcloud.com/...) to the real track URL.
+
+    SoundCloud's embed player returns 404 for short links — it can only play a
+    real soundcloud.com/<artist>/<track> URL. Manual adds from the booth's
+    add-box bypass the bot (which has the same fix), so resolve here too.
+    Keeps `?in=` playlist context, drops si/utm tracking junk. Falls back to
+    the original URL on any error.
+    """
+    if "on.soundcloud.com/" not in url.lower():
+        return url
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": SCRAPE_USER_AGENT})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            final = resp.url
+        if "soundcloud.com/" in final:
+            parts = urllib.parse.urlsplit(final)
+            keep = [(k, v) for k, v in urllib.parse.parse_qsl(parts.query) if k == "in"]
+            return urllib.parse.urlunsplit(
+                (parts.scheme, parts.netloc, parts.path, urllib.parse.urlencode(keep), "")
+            )
+    except Exception as exc:  # noqa: BLE001
+        print(f"[booth] short-link resolve failed for {url}: {exc}", flush=True)
+    return url
+
+
 def _scrape_author_name(url: str, platform: str) -> str:
     """Best-effort fetch of the original uploader / artist name for a URL.
 
@@ -1479,6 +1517,7 @@ def solo_queue_add(sid: str) -> Response:
         return jsonify({"error": "URL is required"}), 400
     if not (url.startswith("http://") or url.startswith("https://")):
         return jsonify({"error": "URL must start with http:// or https://"}), 400
+    url = _resolve_short_link(url)
     platform = _detect_platform(url)
     if platform == "Unknown":
         return jsonify({"error": "Unsupported URL — try Suno, YouTube, "
@@ -1778,6 +1817,7 @@ def booth_queue_add() -> Response:
         return jsonify({"error": "URL is required"}), 400
     if not (url.startswith("http://") or url.startswith("https://")):
         return jsonify({"error": "URL must start with http:// or https://"}), 400
+    url = _resolve_short_link(url)
 
     platform = _detect_platform(url)
     if platform == "Unknown":

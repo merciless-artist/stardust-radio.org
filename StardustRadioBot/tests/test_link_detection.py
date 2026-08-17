@@ -45,3 +45,15 @@ def test_emoji_prefix_capture():
     assert _emoji_before_url("🎸https://suno.com/x", "https://suno.com/x") == "🎸"
     assert _emoji_before_url("song https://suno.com/x", "https://suno.com/x") is None
     assert _emoji_before_url("https://suno.com/x", "https://suno.com/x") is None
+
+
+def test_clean_url_strips_trailing_punctuation():
+    from cogs.link_tracker import _clean_url
+    assert _clean_url("https://soundcloud.com/a/song.") == "https://soundcloud.com/a/song"
+    assert _clean_url("https://soundcloud.com/a/song,") == "https://soundcloud.com/a/song"
+    assert _clean_url("https://soundcloud.com/a/song)") == "https://soundcloud.com/a/song"
+    assert _clean_url("https://soundcloud.com/a/song**") == "https://soundcloud.com/a/song"
+    assert _clean_url("https://soundcloud.com/a/song!!") == "https://soundcloud.com/a/song"
+    # legit query string must survive
+    assert _clean_url("https://soundcloud.com/a/song?si=x&utm_source=y") == \
+        "https://soundcloud.com/a/song?si=x&utm_source=y"

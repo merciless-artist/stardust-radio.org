@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-08-17 — SoundCloud playback fixes (booth)
+- **Early cutoff:** SoundCloud's widget can fire FINISH on a buffering stall,
+  cutting a song mid-way (a 4:11 track got cut). `loadSoundCloud` now tracks
+  the real duration (READY → getDuration) and position (PLAY_PROGRESS) and only
+  trusts FINISH when ≥90% through; otherwise it's ignored. Countdown now uses
+  the real song length (+20s) instead of a 30-min guess. Advance-once guard.
+- **AUTO didn't pause SoundCloud:** `syncAudioPlayState` only reached
+  <audio>/<video>/YouTube; the SC iframe kept playing while the booth thought
+  it was paused. Now drives the widget's pause()/play() too.
+- (Bot side, same day: `on.soundcloud.com` short links now auto-resolve to the
+  real track URL at capture — the widget 404s on short links — and trailing
+  sentence punctuation is stripped from captured URLs. Two existing broken
+  short-link rows were repaired in place.)
+- **Manual add-box short links:** the booth's add-box bypasses the bot, so a
+  short link pasted there was stored raw and never played (row had
+  user_id=0 = manual add). Added a server-side `_resolve_short_link` applied
+  in both `/api/queue/add` and the solo add path. Repaired the stored row.
+
+## 2026-08-07 — Privacy + Terms pages live (for app verification)
+- `/privacy` and `/terms` now serve styled on-brand pages (static/privacy.html,
+  static/terms.html) — the URLs Discord app verification requires. Privacy
+  content from DOCS/PRIVACY_POLICY_STARDUST_RADIO.md (+ Activity data note);
+  fresh plain-language ToS written. All site footers now point at /privacy and
+  /terms instead of the old studioaiforums links.
+
 ## 2026-08-06 — Discord Radio Activity (v1 build)
 - New embedded Activity at `/activity`: plays the live station, shows now-playing
   + art + participants, shared "pass-the-aux" 5-station picker. Plain HTML/JS +

@@ -2,6 +2,36 @@
 # ‖   Stardust Radio Bot — CHANGELOG
 # ╚════ ♱ · 𓆩⁜ ✨ ⁜𓆪 · ♱  ════╝
 
+## 2026-08-17 — Fix: re-dropping a removed/played song now re-queues it
+- The dedup check blocked any URL ever seen in the guild — including songs
+  that already PLAYED (still in the DB as played=1 but gone from the booth
+  list). So re-dropping a song the host X'd or that had played did nothing.
+- Now a link is only a duplicate if it's still queued (played=0) in THIS
+  channel. Re-drops of played/removed songs re-queue as intended. Mirrored
+  into the Utility Bot.
+- Also: the short-link resolver now logs failures instead of silently falling
+  back (a silent fallback hid that a manual booth add bypassed it — fixed on
+  the dashboard side too).
+
+## 2026-08-17 — Fix: SoundCloud short links now resolve at capture
+- `on.soundcloud.com/...` short links captured fine but the dashboard's
+  SoundCloud widget returns 404 for them (it only plays real
+  soundcloud.com/<artist>/<track> URLs), so they loaded but never played.
+- New `_resolve_short_link` follows the redirect once at capture time and
+  stores the real URL (keeps `?in=` playlist context, drops si/utm tracking
+  junk so dupes match). Falls back to the original on any error. Mirrored into
+  the Utility Bot. Two already-stored short-link rows repaired in the DB.
+
+## 2026-08-07 — Fix: links ending a sentence captured trailing punctuation
+- The link-capture regex stops at whitespace, so a URL ending a sentence
+  dragged its punctuation along ("…/song." / "…/song," / "**…/song**"). The
+  dashboard then handed SoundCloud (and others) a broken address that wouldn't
+  play. Reported by a host whose SoundCloud drops "bugged out" when posted
+  inside a chatty message.
+- Added `_clean_url` (strips trailing `.,;:!?*_~)` + unbalanced parens; legit
+  query strings survive) applied at capture time; emoji-prefix lookup still
+  uses the raw match. Regression test added. Mirrored into the Utility Bot.
+
 ## 2026-07-09 — DJ stations (self-service per-station adds)
 - New `cogs/dj_stations.py`: DJs can add songs to their own AzuraCast station
   (or the community radio) from Discord — no AzuraCast navigating.

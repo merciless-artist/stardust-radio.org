@@ -38,6 +38,53 @@ URL_PATTERN = re.compile(
 )
 
 
+async def _resolve_short_link(url: str) -> str:
+    """Expand SoundCloud short links (on.soundcloud.com/...) to the real track URL.
+
+    SoundCloud's embed player returns 404 for short links — it can only play a
+    real soundcloud.com/<artist>/<track> URL. Follow the redirect once here so
+    the stored link is directly playable. Falls back to the original on any
+    error, and strips tracking junk (?si=, utm_*) so dupes match.
+    """
+    if 'on.soundcloud.com/' not in url.lower():
+        return url
+    try:
+        import httpx
+        async with httpx.AsyncClient(
+            timeout=20, follow_redirects=True,
+            headers={"User-Agent": "Mozilla/5.0 (StardustRadio LinkResolver)"},
+        ) as c:
+            r = await c.get(url)
+            final = str(r.url)
+        if 'soundcloud.com/' in final:
+            # keep the path (and ?in= playlist context if present), drop tracking params
+            from urllib.parse import urlsplit, parse_qsl, urlencode, urlunsplit
+            parts = urlsplit(final)
+            keep = [(k, v) for k, v in parse_qsl(parts.query) if k == 'in']
+            resolved = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(keep), ''))
+            print(f"[links] resolved short link -> {resolved}", flush=True)
+            return resolved
+        print(f"[links] short link did not land on soundcloud.com: {final}", flush=True)
+    except Exception as exc:  # noqa: BLE001
+        # Log it — a silent fallback here hid a real failure once.
+        print(f"[links] short-link resolve FAILED for {url}: {type(exc).__name__}: {exc}", flush=True)
+    return url
+
+
+def _clean_url(url: str) -> str:
+    """Strip trailing sentence punctuation / markdown that isn't part of a URL.
+
+    The capture regex stops at whitespace, so a link that ends a sentence drags
+    its punctuation along: "…/cool-song." or "…/cool-song," or "**…/song**".
+    SoundCloud (and others) then get a broken address and can't play it.
+    Legit query strings ("?si=abc&utm_source=x") are untouched.
+    """
+    url = url.rstrip('.,;:!?*_~)')
+    while url.endswith(')') and url.count('(') < url.count(')'):
+        url = url[:-1]
+    return url
+
+
 def _emoji_before_url(content: str, url: str) -> Optional[str]:
     """Return a Unicode emoji that immediately precedes a URL, or None.
 
@@ -241,18 +288,27 @@ class LinkTracker(commands.Cog):
         if not full_urls:
             return
 
-        for url in full_urls:
+        for raw_url in full_urls:
+            # Find the emoji prefix using the RAW match (it's what's actually in
+            # the message text), then store the cleaned URL.
+            user_emoji = _normalize_emoji(_emoji_before_url(message.content, raw_url))
+            url = await _resolve_short_link(_clean_url(raw_url))
             if '/playlist/' in url:
                 continue
+            # A link is only a "duplicate" if it's STILL QUEUED (unplayed) in
+            # this channel. A song that already played — or was X'd off by the
+            # host — has left the list, so re-dropping it should re-queue it.
+            # (Previously any URL ever seen in the guild was blocked, so a
+            # re-drop after removal silently did nothing.)
             existing = await self.db.fetchone(
-                "SELECT 1 FROM tracked_links WHERE guild_id = %s AND url = %s",
-                (message.guild.id, url),
+                "SELECT 1 FROM tracked_links "
+                "WHERE guild_id = %s AND channel_id = %s AND url = %s AND played = 0",
+                (message.guild.id, message.channel.id, url),
             )
             if existing:
                 continue
 
             platform = self._get_platform(url)
-            user_emoji = _normalize_emoji(_emoji_before_url(message.content, url))
             emoji = user_emoji or await self._pick_emoji(message.guild.id)
 
             await self.db.execute(
